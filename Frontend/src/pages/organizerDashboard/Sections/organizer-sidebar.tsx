@@ -1,5 +1,20 @@
 "use client";
 
+// TypeScript declarations for Web3Auth global object
+declare global {
+  interface Window {
+    web3auth?: {
+      getUserInfo: () => Promise<{
+        name?: string;
+        email?: string;
+        nickname?: string;
+        given_name?: string;
+      }>;
+      logout: () => Promise<void>;
+    };
+  }
+}
+
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, PlusCircle, Calendar, Ticket, Wallet,
@@ -42,25 +57,52 @@ export function OrganizerSidebar({ sidebarOpen, setSidebarOpen, isOrganizer }: O
   const sidebarItems = allSidebarItems.filter(item => !item.organizerOnly || isOrganizer);
   const { accounts, disconnect } = useSolanaWallet();
   const wallet = accounts?.[0] || "";
+  const [userInfo, setUserInfo] = useState<{ name?: string; email?: string }>({});
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
+
   const formatWalletAddress = (address: string) => {
     if (!address) return "Not connected";
     return `${address.slice(0, 6)}...${address.slice(-6)}`;
   };
 
-  // Try to get user info from Web3Auth global object if available
-  const [userInfo, setUserInfo] = useState<{ name?: string; email?: string }>({});
+  // Enhanced user info fetching from Web3Auth
   useEffect(() => {
-    // @ts-ignore
-    if (window && window.web3auth && window.web3auth.getUserInfo) {
-      // @ts-ignore
-      window.web3auth.getUserInfo().then((info: any) => {
-        setUserInfo({ name: info.name, email: info.email });
-      }).catch(() => {});
-    }
-  }, []);
+    const fetchUserInfo = async () => {
+      try {
+        // Check if Web3Auth is available
+        if (typeof window !== 'undefined' && window.web3auth) {
+          // Try to get user info from Web3Auth
+          const user = await window.web3auth.getUserInfo();
+          if (user) {
+            setUserInfo({
+              name: user.name || user.nickname || user.given_name || 'User',
+              email: user.email || 'No email'
+            });
+          }
+        }
+      } catch (error) {
+        console.log("Could not fetch user info from Web3Auth:", error);
+        // Fallback: try to get from localStorage or sessionStorage
+        try {
+          const storedUser = localStorage.getItem('web3auth_user') || sessionStorage.getItem('web3auth_user');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            setUserInfo({
+              name: parsedUser.name || parsedUser.nickname || 'User',
+              email: parsedUser.email || 'No email'
+            });
+          }
+        } catch (localError) {
+          console.log("Could not fetch user info from storage:", localError);
+        }
+      }
+    };
+
+    fetchUserInfo();
+  }, [wallet]); // Re-run when wallet changes
 
   const user = {
-    name: userInfo.name || "User", // fallback if not available
+    name: userInfo.name || "User",
     email: userInfo.email || "No email",
     address: formatWalletAddress(wallet)
   };
@@ -68,17 +110,43 @@ export function OrganizerSidebar({ sidebarOpen, setSidebarOpen, isOrganizer }: O
   const isConnected = !!wallet;
 
   const handleDisconnect = async () => {
+    if (isDisconnecting) return; // Prevent multiple clicks
+    
+    setIsDisconnecting(true);
     try {
-      await disconnect();
-      // @ts-ignore
-      if (window && window.web3auth && window.web3auth.logout) {
-        // @ts-ignore
-        await window.web3auth.logout();
+      // Disconnect from Solana wallet
+      if (disconnect) {
+        await disconnect();
       }
-      // Redirect to home page after disconnect
+
+      // Logout from Web3Auth
+      if (typeof window !== 'undefined' && window.web3auth) {
+        try {
+          await window.web3auth.logout();
+        } catch (web3authError) {
+          console.log("Web3Auth logout error:", web3authError);
+        }
+      }
+
+      // Clear any stored user data
+      try {
+        localStorage.removeItem('web3auth_user');
+        sessionStorage.removeItem('web3auth_user');
+      } catch (storageError) {
+        console.log("Storage clear error:", storageError);
+      }
+
+      // Reset user info state
+      setUserInfo({});
+
+      // Redirect to home page
       window.location.href = "/";
     } catch (error) {
-      console.error("Error disconnecting:", error);
+      console.error("Error during disconnect:", error);
+      // Even if there's an error, try to redirect
+      window.location.href = "/";
+    } finally {
+      setIsDisconnecting(false);
     }
   };
 
@@ -118,21 +186,26 @@ export function OrganizerSidebar({ sidebarOpen, setSidebarOpen, isOrganizer }: O
             {isConnected && (
               <button
                 onClick={handleDisconnect}
-                className="w-full flex items-center px-4 py-3 text-left rounded-lg transition-all duration-300 ease-in-out relative overflow-hidden border border-transparent cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/20"
+                disabled={isDisconnecting}
+                className="w-full flex items-center px-4 py-3 text-left rounded-lg transition-all duration-300 ease-in-out relative overflow-hidden border border-transparent cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <LogOut className="mr-3 h-5 w-5 flex-shrink-0 transition-all duration-300 text-red-400" />
-                <span className="font-medium">Disconnect Wallet</span>
+                <span className="font-medium">
+                  {isDisconnecting ? "Disconnecting..." : "Disconnect Wallet"}
+                </span>
               </button>
             )}
           </nav>
           {/* User Info at Bottom */}
           <div className="mt-auto px-6 py-4 border-t border-gray-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-lg">{user.name[0]}</div>
+              <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-lg">
+                {user.name ? user.name[0].toUpperCase() : "U"}
+              </div>
               <div className="flex flex-col">
                 <span className="font-bold text-white text-sm leading-tight">{user.name}</span>
                 <span className="text-gray-400 text-xs leading-tight">{user.email}</span>
-                <span className="text-cyan-400 text-xs leading-tight font-mono">{user.address ? user.address : "Not connected"}</span>
+                <span className="text-cyan-400 text-xs leading-tight font-mono">{user.address}</span>
               </div>
             </div>
           </div>
@@ -151,17 +224,22 @@ export function OrganizerSidebar({ sidebarOpen, setSidebarOpen, isOrganizer }: O
             {isConnected && (
               <button
                 onClick={handleDisconnect}
-                className="w-full flex items-center px-4 py-3 text-left rounded-lg transition-all duration-300 ease-in-out relative overflow-hidden border border-transparent cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/20"
+                disabled={isDisconnecting}
+                className="w-full flex items-center px-4 py-3 text-left rounded-lg transition-all duration-300 ease-in-out relative overflow-hidden border border-transparent cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <LogOut className="mr-3 h-5 w-5 flex-shrink-0 transition-all duration-300 text-red-400" />
-                <span className="font-medium">Disconnect Wallet</span>
+                <span className="font-medium">
+                  {isDisconnecting ? "Disconnecting..." : "Disconnect Wallet"}
+                </span>
               </button>
             )}
           </nav>
           {/* User Info at Bottom (Mobile) */}
           <div className="mt-auto px-6 py-4 border-t border-gray-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-lg">{user.name[0]}</div>
+              <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-lg">
+                {user.name ? user.name[0].toUpperCase() : "U"}
+              </div>
               <div className="flex flex-col">
                 <span className="font-bold text-white text-sm leading-tight">{user.name}</span>
                 <span className="text-gray-400 text-xs leading-tight">{user.email}</span>
