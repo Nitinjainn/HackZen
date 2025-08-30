@@ -127,13 +127,13 @@ export function MergedDashboard() {
 
     let unsubscribe: (() => void) | null = null;
 
-    async function setupActivitySubscription() {
+    function setupActivitySubscription() {
       try {
         // Get event IDs for the organizer
         const eventIds = events.map(event => event.id);
         
         // Subscribe to recent activity for these events
-        unsubscribe = await subscribeToRecentActivity(
+        unsubscribe = subscribeToRecentActivity(
           eventIds,
           (newOrders: OrderDoc[]) => {
             setRecentOrders(prevOrders => {
@@ -156,7 +156,7 @@ export function MergedDashboard() {
       }
     }
 
-    async function fetchRecentOrders() {
+    function fetchRecentOrders() {
       try {
         // Mock recent orders data for demonstration
         // In a real implementation, you would fetch from your database
@@ -182,7 +182,7 @@ export function MergedDashboard() {
     setupActivitySubscription();
 
     return () => {
-      if (unsubscribe) {
+      if (unsubscribe && typeof unsubscribe === 'function') {
         unsubscribe();
       }
     };
