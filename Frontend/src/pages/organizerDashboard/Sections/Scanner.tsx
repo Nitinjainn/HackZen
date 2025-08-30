@@ -1,20 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import QrScanner from 'qr-scanner';
-
-// Mock ticket redemption function - replace with actual API call
-const redeemTicket = async (ticketId: string, nonce: string) => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-  
-  // Mock success/failure logic
-  const isSuccess = Math.random() > 0.3; // 70% success rate
-  
-  if (isSuccess) {
-    return { success: true, message: "Ticket redeemed successfully" };
-  } else {
-    return { success: false, message: "Ticket already used or invalid" };
-  }
-};
+import { redeemTicket } from '../../../lib/tickets';
 
 // Types for scan history
 interface ScanRecord {
@@ -45,85 +31,55 @@ const HistoryItem = ({ record }: { record: ScanRecord }) => {
     });
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
-    });
-  };
-
   return (
-    <div className={`p-4 rounded-lg border-l-4 ${
+    <div className={`p-3 rounded-md border-l-4 ${
       record.status === 'success' 
-        ? 'bg-green-50 border-green-500' 
-        : 'bg-red-50 border-red-500'
-    } mb-3 transition-all duration-200 hover:shadow-md`}>
+        ? 'bg-green-900/20 border-green-500' 
+        : 'bg-red-900/20 border-red-500'
+    } mb-2`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+            <span className={`text-xs ${
               record.status === 'success' 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-red-100 text-red-800'
+                ? 'text-green-400' 
+                : 'text-red-400'
             }`}>
               {record.status === 'success' ? '✅ Admitted' : '❌ Denied'}
             </span>
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-              {record.scanMethod === 'qr' ? 'QR Scan' : 'Manual Entry'}
+            <span className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded">
+              {record.scanMethod === 'qr' ? 'QR' : 'Manual'}
             </span>
           </div>
-          <h4 className="font-semibold text-gray-900 text-sm mb-1">
-            {record.eventName}
-          </h4>
-          <p className="text-xs text-gray-600 mb-2 font-mono">
+          <p className="text-xs text-gray-300 mb-1 font-mono">
             ID: {record.ticketId}
           </p>
-          <p className="text-xs text-gray-700 leading-relaxed">
+          <p className="text-xs text-gray-400 leading-relaxed">
             {record.message}
           </p>
         </div>
         <div className="text-right text-xs text-gray-500">
-          <div className="font-medium">{formatTime(record.timestamp)}</div>
-          <div>{formatDate(record.timestamp)}</div>
+          <div>{formatTime(record.timestamp)}</div>
         </div>
       </div>
     </div>
   );
 };
 
-// Stats component
-const StatsCard = ({ title, value, icon, color }: { 
-  title: string; 
-  value: number; 
-  icon: string; 
-  color: string; 
-}) => (
-  <div className={`bg-white rounded-lg p-4 border border-gray-200 ${color}`}>
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm font-medium text-gray-600">{title}</p>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-      </div>
-      <div className="text-2xl">{icon}</div>
-    </div>
-  </div>
-);
-
 export default function Scanner() {
   const videoRef = useRef<HTMLVideoElement>(null);
+  // Key Fix #1: Use a ref to hold the scanner instance so we can control it from anywhere.
   const scannerRef = useRef<QrScanner | null>(null);
-  const [status, setStatus] = useState("idle");
+  const [status, setStatus] = useState("idle"); // idle, scanning, validating, success, failed
   const [scanMessage, setScanMessage] = useState("Point camera at a QR code");
   const [ticketIdInput, setTicketIdInput] = useState("");
   const [scanHistory, setScanHistory] = useState<ScanRecord[]>([]);
-  const [eventName, setEventName] = useState("Tech Conference 2024"); // Mock event name
+  const [eventName] = useState("Tech Conference 2024");
 
   // Calculate stats
   const totalScans = scanHistory.length;
   const successfulScans = scanHistory.filter(record => record.status === 'success').length;
   const failedScans = scanHistory.filter(record => record.status === 'failed').length;
-  const qrScans = scanHistory.filter(record => record.scanMethod === 'qr').length;
-  const manualScans = scanHistory.filter(record => record.scanMethod === 'manual').length;
 
   useEffect(() => {
     if (videoRef.current && !scannerRef.current) {
@@ -131,13 +87,13 @@ export default function Scanner() {
         videoRef.current,
         (result) => handleScan(result.data),
         {
-          onDecodeError: () => {},
+          onDecodeError: () => {}, // Keep it silent to avoid spamming messages
           highlightScanRegion: true,
           highlightCodeOutline: true,
         }
       );
 
-      scannerRef.current = scanner;
+      scannerRef.current = scanner; // Store the instance
       
       scanner.start().then(() => {
         setStatus("scanning");
@@ -148,6 +104,7 @@ export default function Scanner() {
       });
     }
 
+    // Cleanup when the component unmounts
     return () => {
       scannerRef.current?.stop();
       scannerRef.current?.destroy();
@@ -161,14 +118,19 @@ export default function Scanner() {
       id: Date.now().toString(),
       timestamp: new Date(),
     };
-    setScanHistory(prev => [newRecord, ...prev.slice(0, 49)]); // Keep last 50 records
+    setScanHistory(prev => [newRecord, ...prev.slice(0, 19)]); // Keep last 20 records
   };
 
   const processTicketRedemption = async (ticketId: string, nonce: string, scanMethod: 'qr' | 'manual') => {
+    // Key Fix #2: Create a re-usable function to process the ticket.
+    // This prevents code duplication between QR scan and manual entry.
+    
+    // Key Fix #3: Add a guard clause to prevent multiple scans while one is processing.
     if (status === 'validating' || status === 'success' || status === 'failed') {
       return;
     }
 
+    // Key Fix #4: Stop the scanner immediately to prevent re-scans.
     scannerRef.current?.stop();
     setStatus("validating");
     setScanMessage("Validating ticket...");
@@ -205,13 +167,14 @@ export default function Scanner() {
         scanMethod
       });
     } finally {
+      // Key Fix #5: Use a 'finally' block to reliably reset the scanner after a delay.
       setTimeout(() => {
         setStatus("scanning");
         setScanMessage("Ready for next scan...");
-        if (videoRef.current) {
+        if (videoRef.current) { // Ensure video is still there before starting
           scannerRef.current?.start();
         }
-      }, 3000);
+      }, 3000); // Wait 3 seconds before resetting
     }
   };
 
@@ -222,6 +185,7 @@ export default function Scanner() {
       const nonce = url.searchParams.get("nonce");
       await processTicketRedemption(ticketId || "", nonce || "manual_redeem", 'qr');
     } catch (e) {
+      // This handles cases where the QR code is not a valid URL
       setStatus("failed");
       setScanMessage("DENIED: Invalid QR code.");
       addToHistory({
@@ -231,7 +195,7 @@ export default function Scanner() {
         message: "Invalid QR code format",
         scanMethod: 'qr'
       });
-      setTimeout(() => {
+       setTimeout(() => {
         setStatus("scanning");
         setScanMessage("Ready for next scan...");
         if (videoRef.current) {
@@ -246,6 +210,7 @@ export default function Scanner() {
       setScanMessage("Please enter a Ticket ID.");
       return;
     }
+    // For manual redemption, we always use the "manual_redeem" nonce
     await processTicketRedemption(ticketIdInput, "manual_redeem", 'manual');
   };
 
@@ -257,127 +222,85 @@ export default function Scanner() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Event Scanner</h1>
-          <p className="text-lg text-gray-600">Scan QR codes or manually enter ticket IDs</p>
+    <div className="flex gap-6 max-w-6xl mx-auto p-4 sm:p-6">
+      {/* Scanner Section - Keep original styling */}
+      <div className="max-w-md text-center bg-gray-900 text-white rounded-lg shadow-xl">
+        <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Ticket Scanner</h2>
+        
+        <div className="relative w-full aspect-square bg-black rounded-lg overflow-hidden border-2 border-gray-700">
+          <video ref={videoRef} className="w-full h-full object-cover" />
+          <div className={`absolute inset-0 flex flex-col items-center justify-center p-4 text-white font-bold transition-opacity duration-300 pointer-events-none ${getStatusColor()}`}>
+            <StatusIcon status={status} />
+            {status !== 'scanning' && status !== 'idle' && (
+              <p className="mt-4 text-xl">{scanMessage}</p>
+            )}
+          </div>
+        </div>
+        <div className="mt-4 text-lg font-medium h-6">{status === 'scanning' && scanMessage}</div>
+        
+        <div className="mt-6 pt-6 border-t border-gray-700">
+          <h3 className="text-xl font-semibold mb-3">Or, Enter Ticket ID Manually</h3>
+          <div className="flex flex-col sm:flex-row gap-2">
+              <input 
+                type="text" 
+                value={ticketIdInput}
+                onChange={(e) => setTicketIdInput(e.target.value)}
+                placeholder="Enter Ticket ID" 
+                className="flex-grow p-3 border border-gray-600 bg-gray-800 rounded-md text-center text-white placeholder:text-gray-500 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none" 
+              />
+              <button 
+                onClick={handleManualRedeem}
+                disabled={status === 'validating'}
+                className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-md hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Admit
+              </button>
+          </div>
+        </div>
+      </div>
+
+      {/* History Section */}
+      <div className="flex-1 max-w-md bg-gray-900 text-white rounded-lg shadow-xl p-4">
+        <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">Scan History</h2>
+        
+        {/* Event Info */}
+        <div className="bg-gray-800 rounded-lg p-3 mb-4 border border-gray-700">
+          <h3 className="font-semibold text-white mb-1">{eventName}</h3>
+          <p className="text-sm text-gray-400">Active scanning session</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Scanner Section */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-2xl font-bold mb-6 text-gray-900 flex items-center gap-3">
-                <span className="text-blue-600">📱</span>
-                Ticket Scanner
-              </h2>
-              
-              <div className="relative w-full aspect-square bg-black rounded-lg overflow-hidden border-2 border-gray-200 shadow-lg">
-                <video ref={videoRef} className="w-full h-full object-cover" />
-                <div className={`absolute inset-0 flex flex-col items-center justify-center p-4 text-white font-bold transition-opacity duration-300 pointer-events-none ${getStatusColor()}`}>
-                  <StatusIcon status={status} />
-                  {status !== 'scanning' && status !== 'idle' && (
-                    <p className="mt-4 text-xl text-center max-w-sm">{scanMessage}</p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="mt-4 text-lg font-medium h-6 text-center text-gray-700">
-                {status === 'scanning' && scanMessage}
-              </div>
-              
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-xl font-semibold mb-4 text-gray-900 flex items-center gap-2">
-                  <span className="text-gray-600">⌨️</span>
-                  Manual Entry
-                </h3>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <input 
-                    type="text" 
-                    value={ticketIdInput}
-                    onChange={(e) => setTicketIdInput(e.target.value)}
-                    placeholder="Enter Ticket ID" 
-                    className="flex-grow p-4 border border-gray-300 bg-gray-50 rounded-lg text-center text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all duration-200" 
-                  />
-                  <button 
-                    onClick={handleManualRedeem}
-                    disabled={status === 'validating'}
-                    className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
-                  >
-                    Admit
-                  </button>
-                </div>
-              </div>
-            </div>
+        {/* Stats */}
+        <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="bg-gray-800 rounded-lg p-3 text-center border border-gray-700">
+            <p className="text-sm text-gray-400">Total</p>
+            <p className="text-xl font-bold text-white">{totalScans}</p>
           </div>
-
-          {/* History Section */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-lg p-6 h-fit">
-              <h2 className="text-2xl font-bold mb-6 text-gray-900 flex items-center gap-3">
-                <span className="text-green-600">📊</span>
-                Scan History
-              </h2>
-
-              {/* Event Info */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-6 border border-blue-200">
-                <h3 className="font-semibold text-gray-900 mb-2">{eventName}</h3>
-                <p className="text-sm text-gray-600">Active scanning session</p>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <StatsCard 
-                  title="Total Scans" 
-                  value={totalScans} 
-                  icon="📈" 
-                  color="hover:bg-blue-50 transition-colors"
-                />
-                <StatsCard 
-                  title="Successful" 
-                  value={successfulScans} 
-                  icon="✅" 
-                  color="hover:bg-green-50 transition-colors"
-                />
-                <StatsCard 
-                  title="Failed" 
-                  value={failedScans} 
-                  icon="❌" 
-                  color="hover:bg-red-50 transition-colors"
-                />
-                <StatsCard 
-                  title="QR Scans" 
-                  value={qrScans} 
-                  icon="📱" 
-                  color="hover:bg-purple-50 transition-colors"
-                />
-              </div>
-
-              {/* Recent Scans */}
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <span className="text-gray-600">🕒</span>
-                  Recent Activity
-                </h3>
-                
-                {scanHistory.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-4xl mb-2">📋</div>
-                    <p>No scans yet</p>
-                    <p className="text-sm">Start scanning to see activity here</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {scanHistory.slice(0, 10).map((record) => (
-                      <HistoryItem key={record.id} record={record} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
+          <div className="bg-gray-800 rounded-lg p-3 text-center border border-gray-700">
+            <p className="text-sm text-gray-400">Success</p>
+            <p className="text-xl font-bold text-green-400">{successfulScans}</p>
           </div>
+          <div className="bg-gray-800 rounded-lg p-3 text-center border border-gray-700">
+            <p className="text-sm text-gray-400">Failed</p>
+            <p className="text-xl font-bold text-red-400">{failedScans}</p>
+          </div>
+        </div>
+
+        {/* Recent Scans */}
+        <div>
+          <h3 className="font-semibold text-white mb-3">Recent Activity</h3>
+          
+          {scanHistory.length === 0 ? (
+            <div className="text-center py-6 text-gray-400">
+              <p>No scans yet</p>
+              <p className="text-sm">Start scanning to see activity</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {scanHistory.slice(0, 10).map((record) => (
+                <HistoryItem key={record.id} record={record} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
