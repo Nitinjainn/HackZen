@@ -115,26 +115,26 @@ export function OrganizerSidebar({ sidebarOpen, setSidebarOpen, isOrganizer }: O
           <div className="flex items-center px-6 py-6 border-b border-gray-800"><BrandLogo /></div>
           <nav className="flex-1 px-4 py-6 space-y-2">
             {sidebarItems.map((item) => <NavItem key={item.id} item={item} />)}
+            {isConnected && (
+              <button
+                onClick={handleDisconnect}
+                className="w-full flex items-center px-4 py-3 text-left rounded-lg transition-all duration-300 ease-in-out relative overflow-hidden border border-transparent cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/20"
+              >
+                <LogOut className="mr-3 h-5 w-5 flex-shrink-0 transition-all duration-300 text-red-400" />
+                <span className="font-medium">Disconnect Wallet</span>
+              </button>
+            )}
           </nav>
           {/* User Info at Bottom */}
           <div className="mt-auto px-6 py-4 border-t border-gray-800">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-lg">{user.name[0]}</div>
-              <div className="flex flex-col flex-1">
+              <div className="flex flex-col">
                 <span className="font-bold text-white text-sm leading-tight">{user.name}</span>
                 <span className="text-gray-400 text-xs leading-tight">{user.email}</span>
                 <span className="text-cyan-400 text-xs leading-tight font-mono">{user.address ? user.address : "Not connected"}</span>
               </div>
             </div>
-            {isConnected && (
-              <button
-                onClick={handleDisconnect}
-                className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-300"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Disconnect Wallet
-              </button>
-            )}
           </div>
         </div>
       </div>
@@ -148,26 +148,26 @@ export function OrganizerSidebar({ sidebarOpen, setSidebarOpen, isOrganizer }: O
           </div>
           <nav className="flex-1 px-4 py-6 space-y-2">
             {sidebarItems.map((item) => <NavItem key={item.id} item={item} isMobile />)}
+            {isConnected && (
+              <button
+                onClick={handleDisconnect}
+                className="w-full flex items-center px-4 py-3 text-left rounded-lg transition-all duration-300 ease-in-out relative overflow-hidden border border-transparent cursor-pointer text-red-400 hover:text-red-300 hover:bg-red-500/10 hover:border-red-500/20"
+              >
+                <LogOut className="mr-3 h-5 w-5 flex-shrink-0 transition-all duration-300 text-red-400" />
+                <span className="font-medium">Disconnect Wallet</span>
+              </button>
+            )}
           </nav>
           {/* User Info at Bottom (Mobile) */}
           <div className="mt-auto px-6 py-4 border-t border-gray-800">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-lg">{user.name[0]}</div>
-              <div className="flex flex-col flex-1">
+              <div className="flex flex-col">
                 <span className="font-bold text-white text-sm leading-tight">{user.name}</span>
                 <span className="text-gray-400 text-xs leading-tight">{user.email}</span>
                 <span className="text-cyan-400 text-xs leading-tight font-mono">{user.address}</span>
               </div>
             </div>
-            {isConnected && (
-              <button
-                onClick={handleDisconnect}
-                className="w-full flex items-center justify-center px-4 py-2 text-sm font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg hover:bg-red-500/20 hover:border-red-500/30 transition-all duration-300"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Disconnect Wallet
-              </button>
-            )}
           </div>
         </div>
       </div>
