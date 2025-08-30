@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useSolanaWallet } from "@web3auth/modal/react/solana";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../ui/card";
 import { Button } from "../../../ui/button";
@@ -12,7 +12,7 @@ import { Checkbox } from "../../../ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../../../ui/dropdown-menu";
 import { getOrganizerEvents, subscribeToOrganizerAttendees } from "../../../lib/dashboard";
 import type { OrderDoc, EventDoc } from "../../../types/ticketing";
-import { CheckSquare, EyeOffIcon, TimerOffIcon, User2Icon, Filter, X, Search, CheckCircle } from "lucide-react";
+import { CheckSquare, EyeOffIcon, TimerOffIcon, User2Icon, Filter, X, Search, CheckCircle, ArrowLeft } from "lucide-react";
 
 interface AttendeeManagementProps {
   setActiveSection: (section: string) => void;
@@ -21,6 +21,7 @@ interface AttendeeManagementProps {
 
 export function AttendeeManagement({ setActiveSection, eventId: propEventId }: AttendeeManagementProps) {
   const params = useParams();
+  const navigate = useNavigate();
   const urlEventId = params.eventId || null;
   // Use the eventId from URL params if available, otherwise fall back to props
   const eventId = urlEventId || propEventId;
@@ -124,6 +125,16 @@ export function AttendeeManagement({ setActiveSection, eventId: propEventId }: A
   };
 
   const activeFiltersCount = [eventFilter, statusFilter].filter(filter => filter !== "all").length + (searchTerm ? 1 : 0);
+
+  const handleBack = () => {
+    // If we're in a specific event context, go back to events list
+    if (eventId) {
+      setActiveSection("my-events");
+    } else {
+      // If we're in general attendee management, go back to dashboard
+      navigate(-1);
+    }
+  };
   
   const attendeeStats = {
     total: attendeesForEvent.length,
@@ -146,6 +157,17 @@ export function AttendeeManagement({ setActiveSection, eventId: propEventId }: A
   return (
     <div className="min-h-screen bg-black text-white sm:p-2 lg:p-4 relative">
       <div className="max-w-7xl mx-auto py-4 sm:py-8">
+        {/* Back Button */}
+        <div className="mb-4 sm:mb-6 px-2 sm:px-0">
+          <button
+            onClick={handleBack}
+            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </button>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
           <h2 className="text-3xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-2 sm:mb-4 px-4">
