@@ -166,11 +166,13 @@ export function MergedDashboard() {
           buyerWallet: `buyer-${index + 1}`,
           qty: Math.floor(Math.random() * 3) + 1,
           totalAmount: event.priceLamports * (Math.floor(Math.random() * 3) + 1),
+          amountLamports: event.priceLamports * (Math.floor(Math.random() * 3) + 1),
           currency: event.currency,
           status: 'completed',
           createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString(),
           updatedAt: new Date().toISOString(),
           transactionSignature: `tx-${Date.now()}-${index}`,
+          receiverWallet: event.receiverWallet || organizerWallet,
         }));
         
         setRecentOrders(mockOrders);
