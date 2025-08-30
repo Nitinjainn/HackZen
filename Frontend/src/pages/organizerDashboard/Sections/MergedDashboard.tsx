@@ -426,7 +426,7 @@ export function MergedDashboard() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className={`space-y-4 ${events.length > 4 ? 'max-h-96 overflow-y-auto scrollbar-hide' : ''}`}>
               {events.length > 0 ? (
                 events.slice(0, 5).map((event) => (
                   <div
@@ -509,7 +509,6 @@ export function MergedDashboard() {
             </CardContent>
           </Card>
         </div>
-      </div>
 
       {/* Recent Activity - Full width */}
       <div className="mt-6 sm:mt-8">
@@ -522,7 +521,7 @@ export function MergedDashboard() {
               </CardTitle>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className={`${recentOrders.length > 4 ? 'max-h-96 overflow-y-auto scrollbar-hide' : ''}`}>
             {recentOrders.length > 0 ? (
               <div className="space-y-4">
                 {recentOrders.slice(0, 5).map((order) => {
