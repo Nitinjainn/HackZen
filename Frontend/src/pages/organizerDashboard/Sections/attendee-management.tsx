@@ -157,8 +157,9 @@ export function AttendeeManagement({ setActiveSection, eventId: propEventId }: A
   return (
     <div className="min-h-screen bg-black text-white sm:p-2 lg:p-4 relative">
       <div className="max-w-7xl mx-auto py-4 sm:py-8">
-        {/* Back Button */}
-        <div className="mb-4 sm:mb-6 px-2 sm:px-0">
+        {/* Header with Back Button */}
+        <div className="flex items-center justify-between mb-6 sm:mb-8 px-2 sm:px-0">
+          {/* Back Button */}
           <button
             onClick={handleBack}
             className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800/50 rounded-lg transition-all duration-200"
@@ -166,16 +167,19 @@ export function AttendeeManagement({ setActiveSection, eventId: propEventId }: A
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
-        </div>
-
-        {/* Header */}
-        <div className="text-center mb-6 sm:mb-8">
-          <h2 className="text-3xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-2 sm:mb-4 px-4">
-            Attendee Management
-          </h2>
-          <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-6">
-            Manage your event attendees and track check-ins.
-          </p>
+          
+          {/* Header Title */}
+          <div className="flex-1 text-center">
+            <h2 className="text-3xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent mb-2 sm:mb-4 px-4">
+              Attendee Management
+            </h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-6">
+              Manage your event attendees and track check-ins.
+            </p>
+          </div>
+          
+          {/* Spacer to balance the layout */}
+          <div className="w-[88px]"></div>
         </div>
 
         {/* Stats Cards */}
