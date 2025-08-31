@@ -150,29 +150,19 @@ export default function NotFound() {
         ))}
       </div>
 
-      <style jsx>{`
+      {/* Custom animations using Tailwind CSS */}
+      <style>{`
         @keyframes spin-slow {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
-        
         @keyframes spin-slow-reverse {
-          from {
-            transform: rotate(360deg);
-          }
-          to {
-            transform: rotate(0deg);
-          }
+          from { transform: rotate(360deg); }
+          to { transform: rotate(0deg); }
         }
-        
         .animate-spin-slow {
           animation: spin-slow 10s linear infinite;
         }
-        
         .animate-spin-slow-reverse {
           animation: spin-slow-reverse 8s linear infinite;
         }
