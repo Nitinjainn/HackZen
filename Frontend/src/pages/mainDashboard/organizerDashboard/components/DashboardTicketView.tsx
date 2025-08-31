@@ -5,7 +5,7 @@ import { getTicket } from "../../../../lib/tickets";
 import { getEvent } from "../../../../lib/events";
 import type { EventDoc, TicketDoc } from "../../../../types/ticketing";
 import { Button } from "../../../../ui/button";
-import { ArrowLeft, Calendar, Clock, Ticket, Download, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, Ticket, Download, Share2, Copy } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function DashboardTicketView() {
@@ -17,6 +17,7 @@ export default function DashboardTicketView() {
   const [qrValue, setQrValue] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [copying, setCopying] = useState(false);
 
   useEffect(() => {
     if (!ticketId) return;
@@ -99,21 +100,71 @@ export default function DashboardTicketView() {
       } else {
         // Fallback: copy URL to clipboard
         await navigator.clipboard.writeText(window.location.href);
-        // You could add a toast notification here
-        alert('Ticket URL copied to clipboard!');
+        showCopySuccess();
       }
     } catch (error) {
       console.error('Error sharing ticket:', error);
       // Fallback: copy URL to clipboard
       try {
         await navigator.clipboard.writeText(window.location.href);
-        alert('Ticket URL copied to clipboard!');
+        showCopySuccess();
       } catch (clipboardError) {
         console.error('Error copying to clipboard:', clipboardError);
       }
     } finally {
       setSharing(false);
     }
+  };
+
+  const handleCopyToClipboard = async () => {
+    if (!ticket || !event) return;
+    
+    setCopying(true);
+    try {
+      const startDate = new Date(event.startsAt);
+      const ticketInfo = `Ticket: ${event.title}
+Date: ${startDate.toLocaleDateString()}
+Time: ${startDate.toLocaleTimeString()}
+Ticket ID: ${ticket.id}
+${event.venue ? `Venue: ${event.venue}` : ''}
+URL: ${window.location.href}`;
+      
+      await navigator.clipboard.writeText(ticketInfo);
+      showCopySuccess();
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      // Fallback for older browsers
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = `Ticket: ${event.title}\nDate: ${startDate.toLocaleDateString()}\nTime: ${startDate.toLocaleTimeString()}\nTicket ID: ${ticket.id}\n${event.venue ? `Venue: ${event.venue}` : ''}\nURL: ${window.location.href}`;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showCopySuccess();
+      } catch (fallbackError) {
+        console.error('Fallback copy failed:', fallbackError);
+        alert('Failed to copy to clipboard. Please try again.');
+      }
+    } finally {
+      setCopying(false);
+    }
+  };
+
+  const showCopySuccess = () => {
+    // Create a temporary success message
+    const successDiv = document.createElement('div');
+    successDiv.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity duration-300';
+    successDiv.textContent = 'Copied to clipboard!';
+    document.body.appendChild(successDiv);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+      successDiv.style.opacity = '0';
+      setTimeout(() => {
+        document.body.removeChild(successDiv);
+      }, 300);
+    }, 3000);
   };
 
   if (loading) {
@@ -267,14 +318,14 @@ export default function DashboardTicketView() {
             </div>
           </div>
 
-          {/* Download/Share Options */}
+          {/* Download/Share/Copy Options */}
           <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
             <h2 className="text-lg font-semibold text-white mb-4 sm:mb-6">Actions</h2>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Button
                 onClick={handleDownloadQR}
                 disabled={downloading}
-                className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white transition-colors duration-200 h-12"
+                className="bg-cyan-600 hover:bg-cyan-700 text-white transition-colors duration-200 h-12"
               >
                 <Download className="w-4 h-4 mr-2" />
                 {downloading ? 'Downloading...' : 'Download QR'}
@@ -282,10 +333,18 @@ export default function DashboardTicketView() {
               <Button
                 onClick={handleShareTicket}
                 disabled={sharing}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white transition-colors duration-200 h-12"
+                className="bg-gray-700 hover:bg-gray-600 text-white transition-colors duration-200 h-12"
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 {sharing ? 'Sharing...' : 'Share Ticket'}
+              </Button>
+              <Button
+                onClick={handleCopyToClipboard}
+                disabled={copying}
+                className="bg-purple-600 hover:bg-purple-700 text-white transition-colors duration-200 h-12"
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                {copying ? 'Copying...' : 'Copy Info'}
               </Button>
             </div>
           </div>
