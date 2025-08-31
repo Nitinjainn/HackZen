@@ -2,14 +2,14 @@ import { Link } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Home, ArrowLeft } from "lucide-react";
 
-export default function NotFound() {
+export default function NotFound(): JSX.Element {
   return (
     <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 overflow-hidden">
-      <div className="text-center relative">
+      <div className="text-center relative w-full max-w-4xl">
         {/* Animated 404 SVG */}
         <div className="mb-8 relative">
           <svg 
-            className="w-64 h-24 mx-auto"
+            className="w-80 h-32 sm:w-96 sm:h-36 md:w-[500px] md:h-40 lg:w-[600px] lg:h-48 mx-auto"
             viewBox="0 0 700 250" 
             xmlns="http://www.w3.org/2000/svg"
           >
@@ -57,22 +57,22 @@ export default function NotFound() {
         </div>
 
         {/* Glowing Text */}
-        <h1 className="text-3xl font-bold mb-4 text-cyan-400 animate-flicker">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-cyan-400 animate-flicker">
           Page Not Found
         </h1>
         
-        <p className="text-gray-400 mb-8 text-lg">
+        <p className="text-base sm:text-lg md:text-xl text-gray-400 mb-8">
           The page you're looking for doesn't exist.
         </p>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <Button
             asChild
-            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium px-8 py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-cyan-500/25"
+            className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-medium px-6 sm:px-8 py-2 sm:py-3 rounded-lg transition-all duration-300 shadow-lg hover:shadow-cyan-500/25 text-sm sm:text-base"
           >
             <Link to="/">
-              <Home className="w-5 h-5 mr-2" />
+              <Home className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Go Home
             </Link>
           </Button>
@@ -80,58 +80,13 @@ export default function NotFound() {
           <Button
             variant="outline"
             onClick={() => window.history.back()}
-            className="border-cyan-500/50 hover:bg-cyan-500/10 bg-transparent text-cyan-400 hover:text-white transition-all duration-300 px-8 py-3 rounded-lg shadow-lg hover:shadow-cyan-500/25"
+            className="border-cyan-500/50 hover:bg-cyan-500/10 bg-transparent text-cyan-400 hover:text-white transition-all duration-300 px-6 sm:px-8 py-2 sm:py-3 rounded-lg shadow-lg hover:shadow-cyan-500/25 text-sm sm:text-base"
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
+            <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
             Go Back
           </Button>
         </div>
       </div>
-
-      {/* Custom CSS for animations */}
-      <style jsx>{`
-        @keyframes draw-4 {
-          0% { stroke-dasharray: 940px; stroke-dashoffset: -940px; }
-          100% { stroke-dasharray: 940px; stroke-dashoffset: 0px; }
-        }
-        
-        @keyframes draw-0 {
-          0% { stroke-dasharray: 735px; stroke-dashoffset: -735px; }
-          100% { stroke-dasharray: 735px; stroke-dashoffset: 0px; }
-        }
-        
-        @keyframes draw-4-2 {
-          0% { stroke-dasharray: 940px; stroke-dashoffset: -940px; }
-          100% { stroke-dasharray: 940px; stroke-dashoffset: 0px; }
-        }
-        
-        @keyframes flicker {
-          0%, 100% { 
-            color: #00d4ff; 
-            text-shadow: 0 0 10px #00d4ff, 0 0 20px #00d4ff, 0 0 30px #00d4ff;
-          }
-          50% { 
-            color: #0099cc; 
-            text-shadow: 0 0 5px #0099cc, 0 0 10px #0099cc, 0 0 15px #0099cc;
-          }
-        }
-        
-        .animate-draw-4 {
-          animation: draw-4 2s ease-in-out forwards;
-        }
-        
-        .animate-draw-0 {
-          animation: draw-0 2s ease-in-out 0.5s forwards;
-        }
-        
-        .animate-draw-4-2 {
-          animation: draw-4-2 2s ease-in-out 1s forwards;
-        }
-        
-        .animate-flicker {
-          animation: flicker 3s ease-in-out 2.5s infinite;
-        }
-      `}</style>
     </div>
   );
 }
