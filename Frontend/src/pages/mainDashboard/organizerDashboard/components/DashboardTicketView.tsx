@@ -169,10 +169,10 @@ URL: ${window.location.href}`;
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh] px-4">
-        <div className="flex items-center gap-3 text-lg">
-          <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-          Loading ticket...
+      <div className="flex justify-center items-center min-h-[60vh] px-3 sm:px-4">
+        <div className="flex items-center gap-2 sm:gap-3 text-sm sm:text-lg">
+          <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-gray-300">Loading ticket...</span>
         </div>
       </div>
     );
@@ -180,12 +180,12 @@ URL: ${window.location.href}`;
 
   if (error) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh] px-4">
-        <div className="bg-red-900/50 border border-red-500/20 text-red-400 p-6 rounded-xl flex items-center gap-3 max-w-md">
-          <div className="w-2 h-2 bg-red-500 rounded-full animate-ping"></div>
-          <div>
-            <div className="font-semibold">Error</div>
-            <div className="text-sm">{error}</div>
+      <div className="flex justify-center items-center min-h-[60vh] px-3 sm:px-4">
+        <div className="bg-red-900/50 border border-red-500/20 text-red-400 p-4 sm:p-6 rounded-xl flex items-center gap-2 sm:gap-3 max-w-sm sm:max-w-md mx-2">
+          <div className="w-2 h-2 bg-red-500 rounded-full animate-ping flex-shrink-0"></div>
+          <div className="min-w-0">
+            <div className="font-semibold text-sm sm:text-base">Error</div>
+            <div className="text-xs sm:text-sm break-words">{error}</div>
           </div>
         </div>
       </div>
@@ -194,10 +194,10 @@ URL: ${window.location.href}`;
 
   if (!ticket || !event) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh] px-4">
-        <div className="text-center max-w-md">
-          <h3 className="text-xl font-bold text-white mb-2">Ticket not found</h3>
-          <p className="text-gray-400">The requested ticket could not be located.</p>
+      <div className="flex justify-center items-center min-h-[60vh] px-3 sm:px-4">
+        <div className="text-center max-w-sm sm:max-w-md mx-2">
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Ticket not found</h3>
+          <p className="text-gray-400 text-sm sm:text-base">The requested ticket could not be located.</p>
         </div>
       </div>
     );
@@ -212,105 +212,105 @@ URL: ${window.location.href}`;
   const status = statusMap[ticket.status] || { label: ticket.status, color: "bg-gray-500/20 text-gray-400 border-gray-500/30" };
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-black text-white p-3 sm:p-4 md:p-6 lg:p-8">
       <div className="max-w-2xl mx-auto">
         {/* Back Button */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Button
             asChild
             variant="ghost"
-            className="text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors duration-200"
+            className="text-gray-400 hover:text-white hover:bg-gray-800/50 transition-colors duration-200 w-full sm:w-auto justify-start"
           >
             <Link to="/dashboard/tickets">
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-4 h-4 mr-2 flex-shrink-0" />
               <span className="hidden sm:inline">Back to My Tickets</span>
-              <span className="sm:hidden">Back</span>
+              <span className="sm:hidden">Back to Tickets</span>
             </Link>
           </Button>
         </div>
 
         {/* Event Title */}
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-3 leading-tight">
+        <div className="text-center mb-4 sm:mb-6 lg:mb-8 px-2">
+          <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-2 sm:mb-3 leading-tight break-words">
             {event.title}
           </h1>
-          <span className={`text-sm font-medium rounded-full px-4 py-2 border ${status.color}`}>
+          <span className={`text-xs sm:text-sm font-medium rounded-full px-3 sm:px-4 py-1.5 sm:py-2 border ${status.color}`}>
             {status.label}
           </span>
         </div>
 
         {/* Main Content */}
-        <div className="space-y-6 sm:space-y-8">
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
           {/* QR Code Section */}
-          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 sm:p-8 text-center">
-            <h2 className="text-lg font-semibold text-white mb-4 sm:mb-6">Your QR Code</h2>
-            <div className="bg-white p-4 sm:p-6 rounded-lg inline-block shadow-lg">
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 sm:p-6 md:p-8 text-center">
+            <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 md:mb-6">Your QR Code</h2>
+            <div className="bg-white p-3 sm:p-4 md:p-6 rounded-lg inline-block shadow-lg">
               <QRCode 
                 value={qrValue} 
-                size={Math.min(200, window.innerWidth - 100)} 
+                size={Math.min(180, Math.max(150, window.innerWidth - 80))} 
                 level="M"
                 bgColor="#ffffff"
                 fgColor="#000000"
               />
             </div>
-            <p className="text-gray-400 text-sm mt-4 sm:mt-6 max-w-sm mx-auto">
+            <p className="text-gray-400 text-xs sm:text-sm mt-3 sm:mt-4 md:mt-6 max-w-sm mx-auto px-2">
               Show this QR code at the event entrance for quick check-in
             </p>
           </div>
 
           {/* Ticket Information */}
-          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-4 sm:mb-6">Ticket Information</h2>
-            <div className="space-y-4">
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 md:mb-6">Ticket Information</h2>
+            <div className="space-y-3 sm:space-y-4">
               {/* Ticket ID */}
-              <div className="flex items-center justify-between py-3 border-b border-gray-700/50">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 bg-purple-500/20 rounded-full">
-                    <Ticket className="w-4 h-4 text-purple-400" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 sm:py-3 border-b border-gray-700/50 gap-2 sm:gap-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-purple-500/20 rounded-full flex-shrink-0">
+                    <Ticket className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
                   </div>
-                  <span className="text-gray-300 text-sm sm:text-base">Ticket ID</span>
+                  <span className="text-gray-300 text-xs sm:text-sm md:text-base">Ticket ID</span>
                 </div>
-                <span className="text-white font-mono text-xs sm:text-sm break-all ml-2">
+                <span className="text-white font-mono text-xs sm:text-sm break-all sm:ml-2 sm:text-right">
                   {ticket.id}
                 </span>
               </div>
 
               {/* Date */}
-              <div className="flex items-center justify-between py-3 border-b border-gray-700/50">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 bg-cyan-500/20 rounded-full">
-                    <Calendar className="w-4 h-4 text-cyan-400" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 sm:py-3 border-b border-gray-700/50 gap-2 sm:gap-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-cyan-500/20 rounded-full flex-shrink-0">
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-400" />
                   </div>
-                  <span className="text-gray-300 text-sm sm:text-base">Date</span>
+                  <span className="text-gray-300 text-xs sm:text-sm md:text-base">Date</span>
                 </div>
-                <span className="text-white text-sm sm:text-base">
+                <span className="text-white text-xs sm:text-sm md:text-base sm:text-right">
                   {startDate.toLocaleDateString()}
                 </span>
               </div>
 
               {/* Time */}
-              <div className="flex items-center justify-between py-3 border-b border-gray-700/50">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-8 h-8 bg-blue-500/20 rounded-full">
-                    <Clock className="w-4 h-4 text-blue-400" />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 sm:py-3 border-b border-gray-700/50 gap-2 sm:gap-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-blue-500/20 rounded-full flex-shrink-0">
+                    <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
                   </div>
-                  <span className="text-gray-300 text-sm sm:text-base">Time</span>
+                  <span className="text-gray-300 text-xs sm:text-sm md:text-base">Time</span>
                 </div>
-                <span className="text-white text-sm sm:text-base">
+                <span className="text-white text-xs sm:text-sm md:text-base sm:text-right">
                   {startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
 
               {/* Venue (if available) */}
               {event.venue && (
-                <div className="flex items-center justify-between py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 bg-orange-500/20 rounded-full">
-                      <div className="w-4 h-4 text-orange-400">📍</div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 sm:py-3 gap-2 sm:gap-0">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 bg-orange-500/20 rounded-full flex-shrink-0">
+                      <div className="w-3 h-3 sm:w-4 sm:h-4 text-orange-400">📍</div>
                     </div>
-                    <span className="text-gray-300 text-sm sm:text-base">Venue</span>
+                    <span className="text-gray-300 text-xs sm:text-sm md:text-base">Venue</span>
                   </div>
-                  <span className="text-white text-sm sm:text-base text-right max-w-[40%] truncate">
+                  <span className="text-white text-xs sm:text-sm md:text-base sm:text-right break-words">
                     {event.venue}
                   </span>
                 </div>
@@ -319,32 +319,38 @@ URL: ${window.location.href}`;
           </div>
 
           {/* Download/Share/Copy Options */}
-          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-4 sm:mb-6">Actions</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 md:mb-6">Actions</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               <Button
                 onClick={handleDownloadQR}
                 disabled={downloading}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white transition-colors duration-200 h-12"
+                className="bg-cyan-600 hover:bg-cyan-700 text-white transition-colors duration-200 h-10 sm:h-12 text-xs sm:text-sm"
               >
-                <Download className="w-4 h-4 mr-2" />
-                {downloading ? 'Downloading...' : 'Download QR'}
+                <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 flex-shrink-0" />
+                <span className="truncate">
+                  {downloading ? 'Downloading...' : 'Download QR'}
+                </span>
               </Button>
               <Button
                 onClick={handleShareTicket}
                 disabled={sharing}
-                className="bg-gray-700 hover:bg-gray-600 text-white transition-colors duration-200 h-12"
+                className="bg-gray-700 hover:bg-gray-600 text-white transition-colors duration-200 h-10 sm:h-12 text-xs sm:text-sm"
               >
-                <Share2 className="w-4 h-4 mr-2" />
-                {sharing ? 'Sharing...' : 'Share Ticket'}
+                <Share2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 flex-shrink-0" />
+                <span className="truncate">
+                  {sharing ? 'Sharing...' : 'Share Ticket'}
+                </span>
               </Button>
               <Button
                 onClick={handleCopyToClipboard}
                 disabled={copying}
-                className="bg-purple-600 hover:bg-purple-700 text-white transition-colors duration-200 h-12"
+                className="bg-purple-600 hover:bg-purple-700 text-white transition-colors duration-200 h-10 sm:h-12 text-xs sm:text-sm sm:col-span-2 lg:col-span-1"
               >
-                <Copy className="w-4 h-4 mr-2" />
-                {copying ? 'Copying...' : 'Copy Info'}
+                <Copy className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 flex-shrink-0" />
+                <span className="truncate">
+                  {copying ? 'Copying...' : 'Copy Info'}
+                </span>
               </Button>
             </div>
           </div>
