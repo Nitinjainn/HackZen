@@ -21,6 +21,13 @@ export default function NotFound(): JSX.Element {
                   <feMergeNode in="SourceGraphic"/>
                 </feMerge>
               </filter>
+              <filter id="innerGlow">
+                <feGaussianBlur stdDeviation="2" result="innerBlur"/>
+                <feMerge>
+                  <feMergeNode in="innerBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
             </defs>
             
             {/* 404 Text Paths */}
@@ -51,6 +58,86 @@ export default function NotFound(): JSX.Element {
                 fill="transparent"
                 filter="url(#glow)"
                 className="animate-draw-4-2"
+              />
+            </g>
+
+            {/* Creative Icon Inside the "0" */}
+            <g className="animate-fadeIn" style={{ animationDelay: '2.5s', animationFillMode: 'forwards', opacity: 0 }}>
+              {/* Central Circle */}
+              <circle 
+                cx="400" 
+                cy="125" 
+                r="15" 
+                fill="#00d4ff" 
+                filter="url(#innerGlow)"
+                className="animate-pulse"
+              />
+              
+              {/* Orbiting Elements */}
+              <circle 
+                cx="400" 
+                cy="125" 
+                r="25" 
+                fill="transparent" 
+                stroke="#00d4ff" 
+                strokeWidth="1" 
+                strokeDasharray="5,5"
+                className="animate-spin"
+                style={{ animationDuration: '8s' }}
+              />
+              
+              {/* Small dots orbiting */}
+              <circle 
+                cx="400" 
+                cy="100" 
+                r="2" 
+                fill="#00d4ff" 
+                className="animate-ping"
+                style={{ animationDelay: '0.5s' }}
+              />
+              <circle 
+                cx="425" 
+                cy="125" 
+                r="2" 
+                fill="#00d4ff" 
+                className="animate-ping"
+                style={{ animationDelay: '1s' }}
+              />
+              <circle 
+                cx="400" 
+                cy="150" 
+                r="2" 
+                fill="#00d4ff" 
+                className="animate-ping"
+                style={{ animationDelay: '1.5s' }}
+              />
+              <circle 
+                cx="375" 
+                cy="125" 
+                r="2" 
+                fill="#00d4ff" 
+                className="animate-ping"
+                style={{ animationDelay: '2s' }}
+              />
+              
+              {/* Crosshair lines */}
+              <line 
+                x1="390" 
+                y1="125" 
+                x2="410" 
+                y2="125" 
+                stroke="#00d4ff" 
+                strokeWidth="1" 
+                className="animate-pulse"
+              />
+              <line 
+                x1="400" 
+                y1="115" 
+                x2="400" 
+                y2="135" 
+                stroke="#00d4ff" 
+                strokeWidth="1" 
+                className="animate-pulse"
               />
             </g>
           </svg>

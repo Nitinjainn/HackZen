@@ -30,6 +30,7 @@ export default {
         "draw-0": "draw-0 2s ease-in-out 0.5s forwards",
         "draw-4-2": "draw-4-2 2s ease-in-out 1s forwards",
         "flicker": "flicker 3s ease-in-out 2.5s infinite",
+        "fadeIn": "fadeIn 1s ease-in-out forwards",
       },
       keyframes: {
         fadeInUp: {
@@ -57,6 +58,10 @@ export default {
             color: "#0099cc",
             textShadow: "0 0 5px #0099cc, 0 0 10px #0099cc, 0 0 15px #0099cc"
           },
+        },
+        "fadeIn": {
+          "0%": { opacity: "0", transform: "scale(0.8)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
         },
       },
     },
