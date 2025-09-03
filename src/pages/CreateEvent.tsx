@@ -148,44 +148,6 @@ export default function CreateEventEnhanced() {
   const submitting = createEventMutation.isPending;
 
   return (
-    <>
-    <style jsx>{`
-      /* Custom date picker styling */
-      input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-        filter: invert(1) brightness(0.8) sepia(1) saturate(5) hue-rotate(180deg);
-        cursor: pointer;
-        opacity: 0.8;
-        transition: opacity 0.3s ease;
-      }
-      
-      input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
-        opacity: 1;
-        filter: invert(1) brightness(1) sepia(1) saturate(5) hue-rotate(180deg);
-      }
-      
-      input[type="datetime-local"]::-webkit-calendar-picker-indicator:active {
-        transform: scale(0.95);
-      }
-      
-      /* Firefox date picker styling */
-      input[type="datetime-local"]::-moz-calendar-picker-indicator {
-        filter: invert(1) brightness(0.8) sepia(1) saturate(5) hue-rotate(180deg);
-        cursor: pointer;
-        opacity: 0.8;
-        transition: opacity 0.3s ease;
-      }
-      
-      input[type="datetime-local"]::-moz-calendar-picker-indicator:hover {
-        opacity: 1;
-        filter: invert(1) brightness(1) sepia(1) saturate(5) hue-rotate(180deg);
-      }
-      
-      /* Edge date picker styling */
-      input[type="datetime-local"]::-ms-clear,
-      input[type="datetime-local"]::-ms-expand {
-        filter: invert(1) brightness(0.8) sepia(1) saturate(5) hue-rotate(180deg);
-      }
-    `}</style>
     <div className="min-h-screen bg-black p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
@@ -296,7 +258,7 @@ export default function CreateEventEnhanced() {
                     </label>
                     <input
                       type="datetime-local"
-                      className="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300"
+                      className="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all duration-300 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-[0.8] [&::-webkit-calendar-picker-indicator]:sepia [&::-webkit-calendar-picker-indicator]:saturate-[5] [&::-webkit-calendar-picker-indicator]:hue-rotate-[180deg] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:transition-opacity [&::-webkit-calendar-picker-indicator]:duration-300 [&::-webkit-calendar-picker-indicator:hover]:opacity-100 [&::-webkit-calendar-picker-indicator:hover]:brightness-100 [&::-webkit-calendar-picker-indicator:active]:scale-95 [&::-moz-calendar-picker-indicator]:filter [&::-moz-calendar-picker-indicator]:invert [&::-moz-calendar-picker-indicator]:brightness-[0.8] [&::-moz-calendar-picker-indicator]:sepia [&::-moz-calendar-picker-indicator]:saturate-[5] [&::-moz-calendar-picker-indicator]:hue-rotate-[180deg] [&::-moz-calendar-picker-indicator]:cursor-pointer [&::-moz-calendar-picker-indicator]:opacity-80 [&::-moz-calendar-picker-indicator]:transition-opacity [&::-moz-calendar-picker-indicator]:duration-300 [&::-moz-calendar-picker-indicator:hover]:opacity-100 [&::-moz-calendar-picker-indicator:hover]:brightness-100"
                       value={startsAt}
                       onChange={(e) => setStartsAt(e.target.value)}
                       required
@@ -309,7 +271,7 @@ export default function CreateEventEnhanced() {
                     </label>
                     <input
                       type="datetime-local"
-                      className="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all duration-300"
+                      className="w-full bg-black border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 transition-all duration-300 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:brightness-[0.8] [&::-webkit-calendar-picker-indicator]:sepia [&::-webkit-calendar-picker-indicator]:saturate-[5] [&::-webkit-calendar-picker-indicator]:hue-rotate-[180deg] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-80 [&::-webkit-calendar-picker-indicator]:transition-opacity [&::-webkit-calendar-picker-indicator]:duration-300 [&::-webkit-calendar-picker-indicator:hover]:opacity-100 [&::-webkit-calendar-picker-indicator:hover]:brightness-100 [&::-webkit-calendar-picker-indicator:active]:scale-95 [&::-moz-calendar-picker-indicator]:filter [&::-moz-calendar-picker-indicator]:invert [&::-moz-calendar-picker-indicator]:brightness-[0.8] [&::-moz-calendar-picker-indicator]:sepia [&::-moz-calendar-picker-indicator]:saturate-[5] [&::-moz-calendar-picker-indicator]:hue-rotate-[180deg] [&::-moz-calendar-picker-indicator]:cursor-pointer [&::-moz-calendar-picker-indicator]:opacity-80 [&::-moz-calendar-picker-indicator]:transition-opacity [&::-moz-calendar-picker-indicator]:duration-300 [&::-moz-calendar-picker-indicator:hover]:opacity-100 [&::-moz-calendar-picker-indicator:hover]:brightness-100"
                       value={endsAt}
                       onChange={(e) => setEndsAt(e.target.value)}
                       required
@@ -428,6 +390,5 @@ export default function CreateEventEnhanced() {
         </div>
       </div>
     </div>
-    </>
   );
 }
