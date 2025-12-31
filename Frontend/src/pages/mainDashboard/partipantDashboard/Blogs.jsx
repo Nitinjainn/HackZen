@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { toast } from "react-hot-toast";
 import { marked } from 'marked';
-import DOMPurify from 'dompurify'; 
+import DOMPurify from 'dompurify';
+import { API_BASE_URL } from "../../../lib/api"; 
 import {
   ArrowLeft,
   Search,
@@ -97,7 +98,7 @@ export function Blogs() {
     const fetchBlogs = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3000/api/articles", {
+        const res = await fetch("${API_BASE_URL}/api/articles", {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -195,7 +196,7 @@ export function Blogs() {
 
     try {
       const res = await fetch(
-        `http://localhost:3000/api/articles/${selectedPost._id}/like`,
+        `${API_BASE_URL}/api/articles/${selectedPost._id}/like`,
         {
           method: "PATCH",
           headers: {

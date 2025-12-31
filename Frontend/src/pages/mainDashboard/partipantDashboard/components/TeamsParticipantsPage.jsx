@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../../../components/AdminUI/table";
+import { API_BASE_URL } from "../../../../lib/api";
 
 export default function TeamsParticipantsPage() {
   const { hackathonId, teamId } = useParams();
@@ -17,8 +18,8 @@ export default function TeamsParticipantsPage() {
       try {
         const token = localStorage.getItem("token");
         const [teamsRes, submissionsRes] = await Promise.all([
-          fetch(`http://localhost:3000/api/teams/hackathon/${hackathonId}/all`, { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`http://localhost:3000/api/projects/hackathon/${hackathonId}`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/api/teams/hackathon/${hackathonId}/all`, { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/api/projects/hackathon/${hackathonId}`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
         const teamsData = await teamsRes.json();
         const submissionsData = await submissionsRes.json();

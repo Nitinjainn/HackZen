@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   ArrowLeft,
   Search,
@@ -55,7 +56,7 @@ export function ExploreHackathons() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const res = await axios.get("http://localhost:3000/api/registration/my", {
+        const res = await axios.get("${API_BASE_URL}/api/registration/my", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -76,7 +77,7 @@ export function ExploreHackathons() {
     const fetchAndProcessHackathons = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("http://localhost:3000/api/hackathons");
+        const res = await axios.get("${API_BASE_URL}/api/hackathons");
         const now = new Date();
 
         const approved = res.data.filter(

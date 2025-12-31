@@ -6,6 +6,7 @@ import CreatedHackathonModals from "./CreatedHackathonModals";
 import { useNavigate } from "react-router-dom";
 import { useToast } from '../../../../hooks/use-toast';
 import { fetchHackathonParticipants, fetchHackathonParticipantsWithSubmissions, fetchTeamsWithSubmissions, fetchSubmissionsWithProblemStatements } from "../../../../lib/api";
+import { API_BASE_URL } from "../../../../lib/api";
 import ChatModal from '../../components/ChatModal';
 import BaseModal from "../../partipantDashboard/components/HackathonComponent/Hackathon/TeamModals/BaseModal";
 import CustomSubmissionForm from "./CustomSubmissionForm";
@@ -84,8 +85,8 @@ export default function InnerCreatedCard({ hackathon: hackathonProp, onBack }) {
           return await res.json();
         };
         const [h, s, p] = await Promise.all([
-          fetchJson(`http://localhost:3000/api/hackathons/${id}`),
-          fetchJson(`http://localhost:3000/api/projects/hackathon/${id}`),
+          fetchJson(`${API_BASE_URL}/api/hackathons/${id}`),
+          fetchJson(`${API_BASE_URL}/api/projects/hackathon/${id}`),
           fetchHackathonParticipantsWithSubmissions(id), // Use the new API
         ]);
         setParticipants(p.participants || []);
@@ -95,7 +96,7 @@ export default function InnerCreatedCard({ hackathon: hackathonProp, onBack }) {
         setTeams(teamsWithSubmissions.teams || []);
 
         // Fetch all submissions for this hackathon (admin endpoint)
-        const submissionsRes = await fetchJson(`http://localhost:3000/api/submission-form/admin/hackathon/${id}`);
+        const submissionsRes = await fetchJson(`${API_BASE_URL}/api/submission-form/admin/hackathon/${id}`);
         const allSubs = submissionsRes.submissions || [];
         // Separate project and PPT submissions (match judge panel logic)
         const pptSubs = allSubs
@@ -126,7 +127,7 @@ export default function InnerCreatedCard({ hackathon: hackathonProp, onBack }) {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:3000/api/registration/hackathon/${hackathon._id}/participants`,
+        `${API_BASE_URL}/api/registration/hackathon/${hackathon._id}/participants`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -165,7 +166,7 @@ export default function InnerCreatedCard({ hackathon: hackathonProp, onBack }) {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:3000/api/submission-form/admin/hackathon/${hackathon._id}`,
+        `${API_BASE_URL}/api/submission-form/admin/hackathon/${hackathon._id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -221,7 +222,7 @@ export default function InnerCreatedCard({ hackathon: hackathonProp, onBack }) {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:3000/api/hackathons/${hackathon._id}`,
+        `${API_BASE_URL}/api/hackathons/${hackathon._id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },

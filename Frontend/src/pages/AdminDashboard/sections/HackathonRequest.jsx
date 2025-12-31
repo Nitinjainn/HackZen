@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   Card,
   CardContent,
@@ -68,7 +69,7 @@ export function HackathonRequest() {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/hackathons/all", {
+        const res = await axios.get(`${API_BASE_URL}/api/hackathons/all`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -93,7 +94,7 @@ export function HackathonRequest() {
     setActionLoading(prev => ({ ...prev, [id]: true }));
     try {
       await axios.patch(
-        `http://localhost:3000/api/hackathons/${id}/approval`,
+        `${API_BASE_URL}/api/hackathons/${id}/approval`,
         { status },
         {
           headers: {

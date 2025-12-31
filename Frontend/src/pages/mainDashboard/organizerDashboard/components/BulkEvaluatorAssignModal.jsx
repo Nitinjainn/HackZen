@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../../co
 import { X, Search, UserPlus, ChevronDown, CheckCircle, Clock, XCircle, Users, FileText } from 'lucide-react';
 import { useToast } from '../../../../hooks/use-toast';
 import AddEvaluatorModal from './AddEvaluatorModal';
+import { API_BASE_URL } from '../../../../lib/api';
 
 export default function BulkEvaluatorAssignModal({
   open,
@@ -88,7 +89,7 @@ export default function BulkEvaluatorAssignModal({
     try {
       const token = localStorage.getItem('token');
       
-      const url = `http://localhost:3000/api/judge-management/hackathons/${hackathonId}/evaluators`;
+      const url = `${API_BASE_URL}/api/judge-management/hackathons/${hackathonId}/evaluators`;
       
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` }
@@ -120,7 +121,7 @@ export default function BulkEvaluatorAssignModal({
       const token = localStorage.getItem('token');
       
       // Build URL with filters
-      let url = `http://localhost:3000/api/judge-management/hackathons/${hackathonId}/assignment-overview`;
+      let url = `${API_BASE_URL}/api/judge-management/hackathons/${hackathonId}/assignment-overview`;
       const params = new URLSearchParams();
       
       if (selectedProblemStatement) {
@@ -156,7 +157,7 @@ export default function BulkEvaluatorAssignModal({
   const fetchHackathonData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/hackathons/${hackathonId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/hackathons/${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -435,7 +436,7 @@ export default function BulkEvaluatorAssignModal({
         selectedProblemStatement
       });
 
-      const url = `http://localhost:3000/api/judge-management/hackathons/${hackathonId}/bulk-assign-submissions`;
+      const url = `${API_BASE_URL}/api/judge-management/hackathons/${hackathonId}/bulk-assign-submissions`;
       
       const response = await fetch(url, {
         method: 'POST',

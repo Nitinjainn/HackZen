@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom"; // Add this import
 import { useAuth } from "../../../../context/AuthContext";
+import { API_BASE_URL } from "../../../../lib/api";
 import { ArrowLeft, Plus, X, Upload, Save, Send, Clock } from "lucide-react";
 import { Button } from "../../../../components/CommonUI/button";
 import { Input } from "../../../../components/CommonUI/input";
@@ -113,7 +114,7 @@ export function WriteArticle({ onBack, onSubmit }) {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("http://localhost:3000/api/articles", {
+      const response = await fetch(`${API_BASE_URL}/api/articles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

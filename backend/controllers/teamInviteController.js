@@ -73,7 +73,11 @@ const createInvite = async (req, res) => {
       });
     }
 
-    const inviteLink = `http://localhost:5173/invite/${invite._id}`;
+    // Get frontend URL based on environment
+    const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
+      ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app')
+      : 'http://localhost:5173';
+    const inviteLink = `${frontendUrl}/invite/${invite._id}`;
 
     // Check if email credentials are set
     if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {

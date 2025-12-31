@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "../../../../../../../components/DashboardUI/alert-dialog";
 import { useToast } from "../../../../../../../hooks/use-toast";
+import { API_BASE_URL } from "../../../../../../../lib/api";
 
 export default function RevokeInviteDialog({ open, invite, onClose, onRevoked }) {
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,7 @@ export default function RevokeInviteDialog({ open, invite, onClose, onRevoked })
       setLoading(true);
       const token = localStorage.getItem("token");
 
-      const res = await fetch(`http://localhost:3000/api/team-invites/${invite._id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/team-invites/${invite._id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

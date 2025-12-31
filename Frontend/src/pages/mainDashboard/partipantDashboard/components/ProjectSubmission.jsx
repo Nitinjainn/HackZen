@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
+import { API_BASE_URL } from "../../../../lib/api";
 import {
   ArrowLeft,
   Save,
@@ -107,7 +108,7 @@ export default function ProjectSubmission({
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:3000/api/projects/${projectId}`,
+        `${API_BASE_URL}/api/projects/${projectId}`,
         {
           method: "DELETE",
           headers: {
@@ -412,8 +413,8 @@ export default function ProjectSubmission({
 
       const url =
         mode === "edit"
-          ? `http://localhost:3000/api/projects/${projectId}`
-          : "http://localhost:3000/api/projects";
+          ? `${API_BASE_URL}/api/projects/${projectId}`
+          : "${API_BASE_URL}/api/projects";
 
       const method = mode === "edit" ? "PUT" : "POST";
 

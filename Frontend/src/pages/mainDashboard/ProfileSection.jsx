@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../../../lib/api";
 
 import {
   SquarePen,
@@ -236,7 +237,7 @@ export function ProfileSection({ viewUserId }) {
       const token = localStorage.getItem("token");
       console.log("🔍 2FA status fetch - token:", token);
       const response = await axios.get(
-        "http://localhost:3000/api/users/2fa/status",
+        "${API_BASE_URL}/api/users/2fa/status",
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -287,7 +288,7 @@ export function ProfileSection({ viewUserId }) {
     try {
       console.log("Disabling 2FA...", { hasPassword: !!currentPassword });
       const response = await axios.post(
-        "http://localhost:3000/api/users/2fa/disable",
+        "${API_BASE_URL}/api/users/2fa/disable",
         { currentPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -339,7 +340,7 @@ export function ProfileSection({ viewUserId }) {
       if (!storedUser?._id || !token) return;
 
       const res = await axios.get(
-        `http://localhost:3000/api/users/${storedUser._id}/streaks`,
+        `${API_BASE_URL}/api/users/${storedUser._id}/streaks`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -371,7 +372,7 @@ export function ProfileSection({ viewUserId }) {
         return;
       }
 
-      const res = await axios.get(`http://localhost:3000/api/users/${userId}`, {
+      const res = await axios.get(`${API_BASE_URL}/api/users/${userId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -2329,7 +2330,7 @@ export function ProfileSection({ viewUserId }) {
 
     try {
       const res = await axios.put(
-        `http://localhost:3000/api/users/${user._id}`,
+        `${API_BASE_URL}/api/users/${user._id}`,
         updates,
         {
           headers: {
@@ -2362,7 +2363,7 @@ export function ProfileSection({ viewUserId }) {
 
     try {
       const uploadRes = await axios.post(
-        "http://localhost:3000/api/uploads/image",
+        "${API_BASE_URL}/api/uploads/image",
         formData
       );
       const imageUrl = uploadRes.data.url;
@@ -2375,7 +2376,7 @@ export function ProfileSection({ viewUserId }) {
 
       if (userData?._id && token) {
         await axios.put(
-          `http://localhost:3000/api/users/${userData._id}`,
+          `${API_BASE_URL}/api/users/${userData._id}`,
           { profileImage: imageUrl },
           {
             headers: {
@@ -2412,7 +2413,7 @@ export function ProfileSection({ viewUserId }) {
 
     try {
       const uploadRes = await axios.post(
-        "http://localhost:3000/api/uploads/image",
+        "${API_BASE_URL}/api/uploads/image",
         formData
       );
       const imageUrl = uploadRes.data.url;
@@ -2425,7 +2426,7 @@ export function ProfileSection({ viewUserId }) {
 
       if (userData?._id && token) {
         await axios.put(
-          `http://localhost:3000/api/users/${userData._id}`,
+          `${API_BASE_URL}/api/users/${userData._id}`,
           { bannerImage: imageUrl },
           {
             headers: {
@@ -2493,7 +2494,7 @@ export function ProfileSection({ viewUserId }) {
       console.log("Request payload:", { currentPassword: !!currentPassword, newPassword: !!newPassword });
       
       const response = await axios.put(
-        `http://localhost:3000/api/users/${userData._id}/password`,
+        `${API_BASE_URL}/api/users/${userData._id}/password`,
         {
           currentPassword, // Optional if OAuth
           newPassword,
@@ -2533,7 +2534,7 @@ export function ProfileSection({ viewUserId }) {
 
     try {
       await axios.put(
-        `http://localhost:3000/api/users/${user._id}`,
+        `${API_BASE_URL}/api/users/${user._id}`,
         { bannerImage: "/assets/default-banner.png" },
         {
           headers: {
@@ -2573,7 +2574,7 @@ export function ProfileSection({ viewUserId }) {
 
     try {
       await axios.put(
-        `http://localhost:3000/api/users/${user._id}`,
+        `${API_BASE_URL}/api/users/${user._id}`,
         { profileImage: "" },
         {
           headers: {

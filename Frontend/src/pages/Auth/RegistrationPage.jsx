@@ -28,6 +28,7 @@ import {
 import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { useAuth } from "../../context/AuthContext"
+import { API_BASE_URL } from "../../lib/api"
 import Swal from "sweetalert2"
 import withReactContent from "sweetalert2-react-content"
 import RoleSelection from "./components/RoleSelection"
@@ -579,7 +580,7 @@ export default function SignupPage() {
           profileCompleted: true
         };
         await axios.put(
-          `http://localhost:3000/api/users/${user._id}/complete-profile`,
+          `${API_BASE_URL}/api/users/${user._id}/complete-profile`,
           profileFields,
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
@@ -600,7 +601,7 @@ export default function SignupPage() {
       }
       // 1. Register user (name, email, password)
       const name = `${formData.firstName} ${formData.lastName}`.trim()
-      const res = await axios.post("http://localhost:3000/api/users/register", {
+      const res = await axios.post(`${API_BASE_URL}/api/users/register`, {
         name,
         email: formData.email,
         password: formData.password,
@@ -673,7 +674,7 @@ export default function SignupPage() {
     // setLoading(true) // handled in showVerificationPopup
     try {
       // 2. Verify code
-      const res = await axios.post("http://localhost:3000/api/users/verify-registration", {
+      const res = await axios.post(`${API_BASE_URL}/api/users/verify-registration`, {
         email: emailForCode?.trim() || formData.email?.trim(),
         code: String(code).trim().padStart(6, "0")
       })
@@ -711,7 +712,7 @@ export default function SignupPage() {
         profileCompleted: true
       }
       await axios.put(
-        `http://localhost:3000/api/users/${user._id}/complete-profile`,
+        `${API_BASE_URL}/api/users/${user._id}/complete-profile`,
         profileFields,
         { headers: { Authorization: `Bearer ${token}` } }
       )

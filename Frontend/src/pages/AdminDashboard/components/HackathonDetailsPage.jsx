@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { HackathonDetails } from "./HackathonDetails"
 import { Loader2 } from "lucide-react"
+import { API_BASE_URL } from "../../../lib/api"
 
 export default function HackathonDetailsPage() {
   const { id } = useParams()
@@ -18,7 +19,7 @@ export default function HackathonDetailsPage() {
     const fetchHackathon = async () => {
       try {
         const token = localStorage.getItem("token")
-        const res = await axios.get(`http://localhost:3000/api/hackathons/${id}`, {
+        const res = await axios.get(`${API_BASE_URL}/api/hackathons/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

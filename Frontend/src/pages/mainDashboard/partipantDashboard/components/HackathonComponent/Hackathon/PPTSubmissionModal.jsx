@@ -5,6 +5,7 @@ import { useToast } from '../../../../../../hooks/use-toast';
 import EditTeamNameModal from "./TeamModals/EditTeamNameModal";
 import { Edit, X } from "lucide-react"; // Added X import
 import { useAuth } from '../../../../../../context/AuthContext';
+import { API_BASE_URL } from '../../../../../../lib/api';
 
 export default function PPTSubmissionModal({ open, onOpenChange, hackathonId, roundIndex, onSuccess, hackathon, editingSubmission }) {
   const [file, setFile] = useState(null);
@@ -34,7 +35,7 @@ export default function PPTSubmissionModal({ open, onOpenChange, hackathonId, ro
   const fetchTeam = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/teams/hackathon/${hackathon?._id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/teams/hackathon/${hackathon?._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -172,7 +173,7 @@ export default function PPTSubmissionModal({ open, onOpenChange, hackathonId, ro
               setUpdatingTeamName(true);
               try {
                 const token = localStorage.getItem("token");
-                await fetch(`http://localhost:3000/api/teams/${team._id}/name`, {
+                await fetch(`${API_BASE_URL}/api/teams/${team._id}/name`, {
                   method: "PUT",
                   headers: {
                     "Content-Type": "application/json",

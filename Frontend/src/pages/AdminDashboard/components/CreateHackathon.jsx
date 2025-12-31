@@ -1,6 +1,7 @@
 "use client"
 import { useState, useRef } from "react"
 import { useAuth } from "../../../context/AuthContext"
+import { API_BASE_URL } from "../../../lib/api"
 import { Plus, Trash2, Calendar, Users, FileText, Save, X, Upload, Loader2, Check, AlertCircle, Info } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/CommonUI/card"
 import { Button } from "../../../components/CommonUI/button"
@@ -166,7 +167,7 @@ export function CreateHackathon({ onBack }) {
     uploadFormData.append("image", file)
 
     try {
-      const res = await fetch("http://localhost:3000/api/uploads/image", {
+      const res = await fetch(`${API_BASE_URL}/api/uploads/image`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -276,7 +277,7 @@ export function CreateHackathon({ onBack }) {
         participants: [],
       }
 
-      const response = await fetch("http://localhost:3000/api/hackathons", {
+      const response = await fetch(`${API_BASE_URL}/api/hackathons`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { socialSharing } from '../utils/socialSharing';
+import { API_BASE_URL } from '../lib/api';
 
 export const useAchievements = (userId) => {
   const [badges, setBadges] = useState([]);
@@ -28,7 +29,7 @@ export const useAchievements = (userId) => {
       const token = localStorage.getItem('token');
       
       const response = await axios.get(
-        `http://localhost:3000/api/badges/user/${userId}`,
+        `${API_BASE_URL}/api/badges/user/${userId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -86,7 +87,7 @@ export const useAchievements = (userId) => {
       const token = localStorage.getItem('token');
       
       const response = await axios.post(
-        `http://localhost:3000/api/badges/check${force ? '?force=true' : ''}`,
+        `${API_BASE_URL}/api/badges/check${force ? '?force=true' : ''}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -122,7 +123,7 @@ export const useAchievements = (userId) => {
       const token = localStorage.getItem('token');
       
       const response = await axios.get(
-        `http://localhost:3000/api/badges/progress/${userId}`,
+        `${API_BASE_URL}/api/badges/progress/${userId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }

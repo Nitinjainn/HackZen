@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "../../../../../../../components/DashboardUI/alert-dialog";
+import { API_BASE_URL } from "../../../../../../../lib/api";
 
 export default function UnregisterDialog({
   open,
@@ -24,7 +25,7 @@ export default function UnregisterDialog({
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/registration/${hackathonId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/registration/${hackathonId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

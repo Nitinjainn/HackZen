@@ -5,6 +5,7 @@ import { Card, CardHeader, CardContent, CardTitle } from "../../../components/Co
 import { Input } from "../../../components/CommonUI/input";
 import { Button } from "../../../components/CommonUI/button";
 import { Textarea } from "../../../components/CommonUI/textarea";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   Select,
   SelectContent,
@@ -28,10 +29,10 @@ export default function CommunicationCenter() {
     try {
       const token = localStorage.getItem("token");
       const [newsletterRes, announcementRes] = await Promise.all([
-        fetch("http://localhost:3000/api/newsletter/recent", {
+        fetch(`${API_BASE_URL}/api/newsletter/recent`, {
           headers: { Authorization: `Bearer ${token}` },
         }).catch(() => ({ ok: false })),
-        fetch("http://localhost:3000/api/announcements", {
+        fetch(`${API_BASE_URL}/api/announcements`, {
           headers: { Authorization: `Bearer ${token}` },
         }).catch(() => ({ ok: false }))
       ]);
@@ -113,7 +114,7 @@ export default function CommunicationCenter() {
 
       if (deliveryMethod === "email" || deliveryMethod === "both") {
         try {
-          const newsletterRes = await fetch("http://localhost:3000/api/newsletter/send-newsletter", {
+          const newsletterRes = await fetch(`${API_BASE_URL}/api/newsletter/send-newsletter`, {
             method: "POST",
             headers: { 
               "Content-Type": "application/json",
@@ -138,7 +139,7 @@ export default function CommunicationCenter() {
 
       if (deliveryMethod === "announcement" || deliveryMethod === "both") {
         try {
-          const announcementRes = await fetch("http://localhost:3000/api/announcements/send", {
+          const announcementRes = await fetch(`${API_BASE_URL}/api/announcements/send`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

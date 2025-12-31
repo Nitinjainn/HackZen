@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   Card,
   CardContent,
@@ -48,7 +49,7 @@ export function HackathonsPage() {
   useEffect(() => {
     const fetchHackathons = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/hackathons");
+        const res = await axios.get(`${API_BASE_URL}/api/hackathons`);
         setHackathons(res.data);
       } catch {
         setError("Failed to fetch hackathons");

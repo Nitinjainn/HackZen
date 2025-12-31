@@ -1026,7 +1026,11 @@ async function sendRoleInviteEmail(email, role, token, hackathonData) {
       pass: process.env.MAIL_PASS
     }
   });
-  const inviteLink = `http://localhost:5173/invite/role?token=${token}`;
+  // Get frontend URL based on environment
+  const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
+    ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app')
+    : 'http://localhost:5173';
+  const inviteLink = `${frontendUrl}/invite/role?token=${token}`;
   const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
   const roleIcon = role === 'judge' ? '⚖️' : '🎓';
   const roleColor = role === 'judge' ? '#f59e0b' : '#10b981';
@@ -4817,7 +4821,7 @@ async function sendSubmissionAssignmentEmail(judgeEmail, judgeName, hackathon, s
           ` : ''}
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="http://localhost:5173/judge-dashboard" style="background: linear-gradient(135deg, #f59e0b 0%, #667eea 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            <a href="${process.env.NODE_ENV === 'production' || process.env.RENDER ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app') : 'http://localhost:5173'}/judge-dashboard" style="background: linear-gradient(135deg, #f59e0b 0%, #667eea 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
               🚀 Access Judge Dashboard
             </a>
           </div>
@@ -5046,7 +5050,7 @@ exports.sendShortlistedEmail = async function(userEmail, userName, hackathon, pa
           ` : ''}
           
           <div style="text-align: center; margin: 30px 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/hackathons/${hackathon._id}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
+            <a href="${process.env.NODE_ENV === 'production' || process.env.RENDER ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app') : 'http://localhost:5173'}/dashboard/hackathons/${hackathon._id}" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
               🎯 Go to Hackathon
             </a>
           </div>

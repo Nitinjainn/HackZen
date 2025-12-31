@@ -101,40 +101,58 @@ const registerUser = async (req, res) => {
     );
     // Send email
     if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+      console.error('Email service not configured - MAIL_USER or MAIL_PASS missing');
       return res.status(500).json({ message: 'Email service not configured' });
     }
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-      }
-    });
-    const emailTemplate = `
-      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #f4f6fb; border-radius: 12px;">
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 10px 10px 0 0; text-align: center;">
-          <h2 style="margin: 0; font-size: 24px;">Verify Your Email</h2>
-        </div>
-        <div style="background: #fff; padding: 32px 24px; border-radius: 0 0 10px 10px; text-align: center;">
-          <p style="color: #333; font-size: 16px;">Hi <b>${name || email}</b>,</p>
-          <p style="color: #555;">Thank you for registering! Please use the code below to verify your email address. This code is valid for <b>10 minutes</b>.</p>
-          <div style="margin: 32px 0;">
-            <span style="display: inline-block; font-size: 32px; letter-spacing: 8px; background: #f4f6fb; color: #764ba2; padding: 16px 32px; border-radius: 8px; font-weight: bold; border: 2px dashed #764ba2;">${verificationCode}</span>
+    
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.MAIL_USER,
+          pass: process.env.MAIL_PASS
+        }
+      });
+      
+      const emailTemplate = `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #f4f6fb; border-radius: 12px;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h2 style="margin: 0; font-size: 24px;">Verify Your Email</h2>
           </div>
-          <p style="color: #888; font-size: 14px;">If you did not request this, you can ignore this email.</p>
+          <div style="background: #fff; padding: 32px 24px; border-radius: 0 0 10px 10px; text-align: center;">
+            <p style="color: #333; font-size: 16px;">Hi <b>${name || email}</b>,</p>
+            <p style="color: #555;">Thank you for registering! Please use the code below to verify your email address. This code is valid for <b>10 minutes</b>.</p>
+            <div style="margin: 32px 0;">
+              <span style="display: inline-block; font-size: 32px; letter-spacing: 8px; background: #f4f6fb; color: #764ba2; padding: 16px 32px; border-radius: 8px; font-weight: bold; border: 2px dashed #764ba2;">${verificationCode}</span>
+            </div>
+            <p style="color: #888; font-size: 14px;">If you did not request this, you can ignore this email.</p>
+          </div>
+          <div style="text-align: center; margin-top: 16px; color: #aaa; font-size: 12px;">&copy; 2025 HackZen Platform</div>
         </div>
-        <div style="text-align: center; margin-top: 16px; color: #aaa; font-size: 12px;">&copy; 2025 HackZen Platform</div>
-      </div>
-    `;
-    await transporter.sendMail({
-      from: `"HackZen" <${process.env.MAIL_USER}>`,
-      to: email,
-      subject: 'Your Verification Code for HackZen Registration',
-      html: emailTemplate
-    });
-    res.status(200).json({ message: 'Verification code sent to your email.' });
+      `;
+      
+      await transporter.sendMail({
+        from: `"HackZen" <${process.env.MAIL_USER}>`,
+        to: email,
+        subject: 'Your Verification Code for HackZen Registration',
+        html: emailTemplate
+      });
+      
+      console.log(`Verification email sent successfully to ${email}`);
+      res.status(200).json({ message: 'Verification code sent to your email.' });
+    } catch (emailError) {
+      console.error('Email sending error:', emailError);
+      // Still save the pending user, but return error about email
+      throw new Error(`Failed to send verification email: ${emailError.message}`);
+    }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Registration error:', err);
+    // Return consistent error format
+    const errorMessage = err.message || 'Registration failed. Please try again.';
+    res.status(500).json({ 
+      message: errorMessage,
+      error: errorMessage 
+    });
   }
 };
 
@@ -176,7 +194,13 @@ const verifyRegistrationCode = async (req, res) => {
       token: generateToken(newUser)
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Verification error:', err);
+    // Return consistent error format
+    const errorMessage = err.message || 'Verification failed. Please try again.';
+    res.status(500).json({ 
+      message: errorMessage,
+      error: errorMessage 
+    });
   }
 };
 

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   Plus,
   Trophy,
@@ -75,7 +76,7 @@ export default function MyHackathons() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/projects/mine", {
+        const res = await fetch("${API_BASE_URL}/api/projects/mine", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -102,7 +103,7 @@ export default function MyHackathons() {
   const fetchRegisteredHackathons = async () => {
     try {
       setLoadingHackathons(true);
-      const res = await fetch("http://localhost:3000/api/registration/my", {
+      const res = await fetch("${API_BASE_URL}/api/registration/my", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -143,7 +144,7 @@ export default function MyHackathons() {
     try {
       setSavedLoading(true);
       const res = await fetch(
-        "http://localhost:3000/api/users/me/saved-hackathons",
+        "${API_BASE_URL}/api/users/me/saved-hackathons",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,

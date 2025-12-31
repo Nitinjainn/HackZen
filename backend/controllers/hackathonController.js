@@ -346,7 +346,11 @@ exports.updateHackathon = async (req, res) => {
     }
    });
   
-   const inviteLink = `http://localhost:5173/invite/role?token=${token}`;
+   // Get frontend URL based on environment
+   const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
+     ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app')
+     : 'http://localhost:5173';
+   const inviteLink = `${frontendUrl}/invite/role?token=${token}`;
    const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
    const roleIcon = role === 'judge' ? '⚖️' : '🎓';
    const roleColor = role === 'judge' ? '#f59e0b' : '#10b981';
@@ -671,7 +675,11 @@ exports.updateApprovalStatus = async (req, res) => {
      }
     });
    
-    const inviteLink = `http://localhost:5173/invite/role?token=${token}`;
+    // Get frontend URL based on environment
+   const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
+     ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app')
+     : 'http://localhost:5173';
+   const inviteLink = `${frontendUrl}/invite/role?token=${token}`;
     const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
     const roleIcon = role === 'judge' ? '⚖️' : '🎓';
     const roleColor = role === 'judge' ? '#f59e0b' : '#10b981';

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "../../../../components/CommonUI/button";
+import { API_BASE_URL } from "../../../../lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../../components/CommonUI/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/CommonUI/select";
 import {
@@ -143,12 +144,12 @@ export default function SubmissionsView({
       const token = localStorage.getItem('token');
 
       // Fetch detailed submission information
-      const submissionResponse = await fetch(`http://localhost:3000/api/submission-form/admin/${submissionId}`, { // Renamed to submissionResponse
+      const submissionResponse = await fetch(`${API_BASE_URL}/api/submission-form/admin/${submissionId}`, { // Renamed to submissionResponse
         headers: { Authorization: `Bearer ${token}` }
       });
 
       // Fetch judge evaluations for this submission
-      const evaluationsResponse = await fetch(`http://localhost:3000/api/scores/submission/${submissionId}`, {
+      const evaluationsResponse = await fetch(`${API_BASE_URL}/api/scores/submission/${submissionId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 

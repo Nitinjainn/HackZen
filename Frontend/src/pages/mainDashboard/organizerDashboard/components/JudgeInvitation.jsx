@@ -10,6 +10,7 @@ import {
 } from "../../../../components/CommonUI/card";
 import { Button } from "../../../../components/CommonUI/button";
 import { Badge } from "../../../../components/CommonUI/badge";
+import { API_BASE_URL } from "../../../../lib/api";
 import {
   Gavel,
   Target,
@@ -44,7 +45,7 @@ export default function JudgeInvitation() {
     try {
       // Note: You'll need to create this endpoint to fetch assignment details
       const response = await fetch(
-        `http://localhost:3000/api/judge-management/judge-assignments/${assignmentId}`,
+        `${API_BASE_URL}/api/judge-management/judge-assignments/${assignmentId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -68,7 +69,7 @@ export default function JudgeInvitation() {
     setResponding(true);
     try {
       const apiResponse = await fetch(
-        `http://localhost:3000/api/judge-management/judge-assignments/${assignmentId}/respond`,
+        `${API_BASE_URL}/api/judge-management/judge-assignments/${assignmentId}/respond`,
         {
           method: "POST",
           headers: {

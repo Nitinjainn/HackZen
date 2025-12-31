@@ -70,7 +70,6 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ✅ Root route - Health check
 app.get("/", (req, res) => {
   res.json({
     message: "HackZen API Server is running!",
@@ -83,7 +82,6 @@ app.get("/", (req, res) => {
   });
 });
 
-// ✅ Health check endpoint
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",

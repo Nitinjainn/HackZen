@@ -13,6 +13,7 @@ import {
   fetchUserPPTSubmissions,
   deletePPTSubmission,
 } from "../../../../../../lib/api";
+import { API_BASE_URL } from "../../../../../../lib/api";
 import { useToast } from "../../../../../../hooks/use-toast";
 import { useAuth } from "../../../../../../context/AuthContext";
 import { useEffect, useRef } from "react";
@@ -82,7 +83,7 @@ export default function HackathonTimeline({
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `http://localhost:3000/api/submission-form/submissions?hackathonId=${hackathon._id}&userId=${user._id}`,
+          `${API_BASE_URL}/api/submission-form/submissions?hackathonId=${hackathon._id}&userId=${user._id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const updatedSubs = (res.data.submissions || []).filter(
@@ -399,7 +400,7 @@ export default function HackathonTimeline({
       if (hackathon._id && user?._id) {
         const token = localStorage.getItem("token");
         axios.get(
-          `http://localhost:3000/api/submission-form/submissions?hackathonId=${hackathon._id}&userId=${user._id}`,
+          `${API_BASE_URL}/api/submission-form/submissions?hackathonId=${hackathon._id}&userId=${user._id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         )
         .then(res => {
@@ -427,7 +428,7 @@ export default function HackathonTimeline({
     try {
       const token = localStorage.getItem("token");
       await axios.delete(
-        `http://localhost:3000/api/submission-form/submission/${submission._id}`,
+        `${API_BASE_URL}/api/submission-form/submission/${submission._id}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -440,7 +441,7 @@ export default function HackathonTimeline({
       });
       if (hackathon._id && user?._id) {
         const res = await axios.get(
-          `http://localhost:3000/api/submission-form/submissions?hackathonId=${hackathon._id}&userId=${user._id}`,
+          `${API_BASE_URL}/api/submission-form/submissions?hackathonId=${hackathon._id}&userId=${user._id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const updatedSubs = (res.data.submissions || []).filter(

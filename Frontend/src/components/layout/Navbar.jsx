@@ -17,6 +17,7 @@ import useDropdownTimeout from "../../hooks/useDropdownTimeout";
 import { useToast } from '../../hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../DashboardUI/dialog';
 import NotificationBell from '../DashboardUI/NotificationBell';
+import { API_BASE_URL } from "../../lib/api";
 
 function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -91,7 +92,7 @@ function Navbar() {
       try {
         const token = localStorage.getItem('token');
         const inviteId = notification.link.split('/').pop();
-        const res = await fetch(`http://localhost:3000/api/team-invites/${inviteId}/accept`, {
+        const res = await fetch(`${API_BASE_URL}/api/team-invites/${inviteId}/accept`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -110,7 +111,7 @@ function Navbar() {
       try {
         const token = localStorage.getItem('token');
         const inviteId = notification.link.split('/').pop();
-        const res = await fetch(`http://localhost:3000/api/team-invites/${inviteId}/respond`, {
+        const res = await fetch(`${API_BASE_URL}/api/team-invites/${inviteId}/respond`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

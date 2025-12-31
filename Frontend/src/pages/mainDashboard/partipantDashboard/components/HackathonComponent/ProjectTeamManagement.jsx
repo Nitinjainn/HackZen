@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../../../../../lib/api";
 import { Button } from "../../../../components/CommonUI/button";
 import {
   Card,
@@ -46,7 +47,7 @@ export default function ProjectTeamManagement({
       setError("");
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `http://localhost:3000/api/teams/project/${project._id}`,
+        `${API_BASE_URL}/api/teams/project/${project._id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setUserTeams(res.data);
@@ -64,7 +65,7 @@ export default function ProjectTeamManagement({
       setError("");
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `http://localhost:3000/api/team-invites/project/${project._id}`,
+        `${API_BASE_URL}/api/team-invites/project/${project._id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setTeamInvites(res.data);
@@ -89,7 +90,7 @@ export default function ProjectTeamManagement({
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `http://localhost:3000/api/teams/join/${teamCode}`,
+        `${API_BASE_URL}/api/teams/join/${teamCode}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           params: { projectId: project._id },
@@ -115,7 +116,7 @@ export default function ProjectTeamManagement({
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:3000/api/teams/${teamId}/description`,
+        `${API_BASE_URL}/api/teams/${teamId}/description`,
         { description: newDescription },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -137,7 +138,7 @@ export default function ProjectTeamManagement({
     setError("");
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3000/api/teams/${teamId}`, {
+      await axios.delete(`${API_BASE_URL}/api/teams/${teamId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast({ title: "Deleted", description: "Team has been deleted" });
@@ -158,7 +159,7 @@ export default function ProjectTeamManagement({
     setError("");
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3000/api/teams/${teamId}/leave`, {
+      await axios.delete(`${API_BASE_URL}/api/teams/${teamId}/leave`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast({ title: "Left Team", description: "You have left the team." });
