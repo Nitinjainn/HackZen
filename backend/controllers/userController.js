@@ -107,7 +107,19 @@ const registerUser = async (req, res) => {
     const pending = await PendingUser.findOne({ email });
     if (pending && pending.codeExpiresAt > new Date()) {
       console.log('[registerUser] Verification code already sent and not expired:', email);
-      return res.status(400).json({ message: 'Verification code already sent. Please check your email.' });
+      console.log('[registerUser] Code expires at:', pending.codeExpiresAt);
+      console.log('[registerUser] Current time:', new Date());
+      // Return success status so frontend shows the popup
+      return res.status(200).json({ 
+        message: 'Verification code already sent. Please check your email.',
+        codeAlreadySent: true
+      });
+    }
+    
+    // If pending exists but expired, delete it
+    if (pending && pending.codeExpiresAt <= new Date()) {
+      console.log('[registerUser] Old pending registration found but expired, deleting...');
+      await PendingUser.deleteOne({ email });
     }
     
     console.log('[registerUser] Hashing password...');
@@ -131,23 +143,49 @@ const registerUser = async (req, res) => {
     // Send email
     if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
       console.error('[registerUser] Email service not configured - MAIL_USER or MAIL_PASS missing');
-      return res.status(500).json({ message: 'Email service not configured' });
+      console.error('[registerUser] Environment check:', {
+        hasMailUser: !!process.env.MAIL_USER,
+        hasMailPass: !!process.env.MAIL_PASS,
+        nodeEnv: process.env.NODE_ENV,
+        render: !!process.env.RENDER
+      });
+      // Clean up pending user
+      await PendingUser.deleteOne({ email });
+      return res.status(500).json({ 
+        message: 'Email service not configured. Please contact support.',
+        error: 'MAIL_USER or MAIL_PASS environment variables are not set'
+      });
     }
     
     console.log('[registerUser] Creating email transporter...');
+    console.log('[registerUser] Email config check:', {
+      hasMailUser: !!process.env.MAIL_USER,
+      hasMailPass: !!process.env.MAIL_PASS,
+      mailUser: process.env.MAIL_USER ? `${process.env.MAIL_USER.substring(0, 3)}...` : 'NOT SET'
+    });
+    
     try {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
           user: process.env.MAIL_USER,
           pass: process.env.MAIL_PASS
-        }
+        },
+        // Add timeout and connection options for production
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 10000
       });
       
-      // Verify transporter before sending
+      // Verify transporter before sending (but don't fail if verify fails in production)
       console.log('[registerUser] Verifying email transporter...');
-      await transporter.verify();
-      console.log('[registerUser] Email transporter verified successfully');
+      try {
+        await transporter.verify();
+        console.log('[registerUser] Email transporter verified successfully');
+      } catch (verifyError) {
+        console.warn('[registerUser] Transporter verification failed, but continuing:', verifyError.message);
+        // Continue anyway - sometimes verify fails but sendMail works
+      }
       
       console.log('[registerUser] Preparing email template...');
       const emailTemplate = `
@@ -172,11 +210,32 @@ const registerUser = async (req, res) => {
         from: `"HackZen" <${process.env.MAIL_USER}>`,
         to: email,
         subject: 'Your Verification Code for HackZen Registration',
-        html: emailTemplate
+        html: emailTemplate,
+        // Add text version for better compatibility
+        text: `Hi ${name || email},\n\nThank you for registering! Please use the code below to verify your email address. This code is valid for 10 minutes.\n\nVerification Code: ${verificationCode}\n\nIf you did not request this, you can ignore this email.\n\n© 2025 HackZen Platform`
       });
       
       console.log('[registerUser] Verification email sent successfully to', email, 'Message ID:', mailResult.messageId);
-      res.status(200).json({ message: 'Verification code sent to your email.' });
+      console.log('[registerUser] Email response:', {
+        accepted: mailResult.accepted,
+        rejected: mailResult.rejected,
+        response: mailResult.response
+      });
+      
+      // Check if email was actually accepted
+      if (mailResult.rejected && mailResult.rejected.length > 0) {
+        console.error('[registerUser] Email was rejected:', mailResult.rejected);
+        await PendingUser.deleteOne({ email });
+        return res.status(500).json({ 
+          message: 'Failed to send verification email. The email address may be invalid.',
+          error: 'Email rejected by mail server'
+        });
+      }
+      
+      res.status(200).json({ 
+        message: 'Verification code sent to your email.',
+        success: true
+      });
     } catch (emailError) {
       console.error('[registerUser] Email sending error:', emailError);
       console.error('[registerUser] Email error details:', {
@@ -185,25 +244,40 @@ const registerUser = async (req, res) => {
         command: emailError.command,
         response: emailError.response,
         responseCode: emailError.responseCode,
+        errno: emailError.errno,
+        syscall: emailError.syscall,
+        hostname: emailError.hostname,
+        port: emailError.port,
         stack: emailError.stack
       });
       
       // Clean up pending user if email fails
       await PendingUser.deleteOne({ email });
       
-      // Return user-friendly error message
-      let errorMessage = 'Failed to send verification email. Please check your email address and try again.';
+      // Return user-friendly error message based on error type
+      let errorMessage = 'Failed to send verification email. Please try again or contact support if the problem persists.';
+      let statusCode = 500;
+      
       if (emailError.code === 'EAUTH') {
         errorMessage = 'Email service authentication failed. Please contact support.';
-      } else if (emailError.code === 'ECONNECTION') {
-        errorMessage = 'Could not connect to email service. Please try again later.';
-      } else if (emailError.responseCode === 550) {
-        errorMessage = 'Invalid email address. Please check and try again.';
+        statusCode = 503; // Service Unavailable
+      } else if (emailError.code === 'ECONNECTION' || emailError.code === 'ETIMEDOUT') {
+        errorMessage = 'Could not connect to email service. Please try again in a few moments.';
+        statusCode = 503;
+      } else if (emailError.responseCode === 550 || emailError.code === 'EENVELOPE') {
+        errorMessage = 'Invalid email address. Please check your email and try again.';
+        statusCode = 400; // Bad Request
+      } else if (emailError.message && emailError.message.includes('Invalid login')) {
+        errorMessage = 'Email service configuration error. Please contact support.';
+        statusCode = 503;
       }
       
-      return res.status(500).json({ 
+      return res.status(statusCode).json({ 
         message: errorMessage,
-        error: process.env.NODE_ENV === 'development' ? emailError.message : undefined
+        error: process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production' 
+          ? emailError.message 
+          : undefined,
+        code: emailError.code
       });
     }
   } catch (err) {

@@ -612,13 +612,24 @@ export default function SignupPage() {
         email: formData.email,
         password: formData.password,
         role: selectedRole === 'organizer' ? 'organizer' : selectedRole
+      }, {
+        timeout: 30000, // 30 second timeout for email sending
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
       
       console.log('[RegistrationPage] Registration request successful:', res.data);
-      setEmailForCode(formData.email)
-      setSuccessMsg(res.data.message || "Verification code sent to your email.")
-      // Show SweetAlert2 popup for code entry
-      await showVerificationPopup()
+      
+      // Only proceed if we got a success response
+      if (res.status === 200 && res.data.message) {
+        setEmailForCode(formData.email)
+        setSuccessMsg(res.data.message || "Verification code sent to your email.")
+        // Show SweetAlert2 popup for code entry
+        await showVerificationPopup()
+      } else {
+        throw new Error(res.data.message || "Registration failed. Please try again.")
+      }
     } catch (err) {
       console.error('[RegistrationPage] Registration error:', err);
       console.error('[RegistrationPage] Error details:', {
@@ -632,14 +643,29 @@ export default function SignupPage() {
         }
       });
       
-      // If the error is 'Verification code already sent', show the popup anyway
+      // Extract error message
       const msg = err.response?.data?.message || err.response?.data?.error || err.message || "Registration failed. Please try again."
+      const status = err.response?.status;
+      
+      console.log('[RegistrationPage] Full error response:', {
+        status,
+        message: msg,
+        data: err.response?.data,
+        config: err.config
+      });
+      
       setErrorMsg(msg)
       
-      if (msg.includes("Verification code already sent")) {
-        console.log('[RegistrationPage] Code already sent, showing popup anyway');
+      // Only show popup if code was actually sent (status 200 or specific message)
+      // Don't show popup for email service errors (500, 400, etc.)
+      if (status === 200 || (msg && msg.toLowerCase().includes("verification code already sent"))) {
+        console.log('[RegistrationPage] Code already sent or request succeeded, showing popup');
         setEmailForCode(formData.email)
         await showVerificationPopup()
+      } else {
+        // For other errors, don't show popup - email wasn't sent
+        console.log('[RegistrationPage] Registration failed, email not sent. Error:', msg);
+        // Error message already set above
       }
     } finally {
       setLoading(false)
