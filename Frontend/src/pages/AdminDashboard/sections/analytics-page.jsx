@@ -47,9 +47,9 @@ export function AnalyticsPage() {
           axios.get(`${API_BASE_URL}/api/users/admin/monthly-stats`, { headers }),
           axios.get(`${API_BASE_URL}/api/hackathons/admin/stats`, { headers }),
           axios.get(`${API_BASE_URL}/api/hackathons/admin/monthly-stats`, { headers }),
-          axios.get("${API_BASE_URL}/api/hackathons/admin/status-breakdown", { headers }),
-          axios.get("${API_BASE_URL}/api/users/admin/weekly-engagement", { headers }),
-          axios.get("${API_BASE_URL}/api/hackathons/admin/category-breakdown", { headers }),
+          axios.get(`${API_BASE_URL}/api/hackathons/admin/status-breakdown`, { headers }),
+          axios.get(`${API_BASE_URL}/api/users/admin/weekly-engagement`, { headers }),
+          axios.get(`${API_BASE_URL}/api/hackathons/admin/category-breakdown`, { headers }),
         ]);
         setUserStats(userStatsRes.data);
         setUserMonthlyStats(userMonthlyRes.data);

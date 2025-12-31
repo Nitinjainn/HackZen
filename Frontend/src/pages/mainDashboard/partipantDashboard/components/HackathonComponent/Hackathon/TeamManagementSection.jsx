@@ -120,7 +120,7 @@ export default function TeamManagementSection({
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "${API_BASE_URL}/api/registration",
+        `${API_BASE_URL}/api/registration`,
         {
           hackathonId: hackathon._id,
           formData,

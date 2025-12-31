@@ -48,7 +48,7 @@ export function UsersManagement() {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("${API_BASE_URL}/api/users", {
+        const res = await axios.get(`${API_BASE_URL}/api/users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

@@ -98,7 +98,7 @@ export function Blogs() {
     const fetchBlogs = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("${API_BASE_URL}/api/articles", {
+        const res = await fetch(`${API_BASE_URL}/api/articles`, {
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,

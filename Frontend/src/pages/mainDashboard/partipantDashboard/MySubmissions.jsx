@@ -53,7 +53,7 @@ export function MySubmissions() {
   // Real-time updates with socket.io for like/view counts
   useEffect(() => {
     if (!socketRef.current) {
-      socketRef.current = io("${API_BASE_URL}");
+      socketRef.current = io(`${API_BASE_URL}`);
     }
     const socket = socketRef.current;
     socket.on("project-like-update", ({ projectId, likes, likedBy }) => {

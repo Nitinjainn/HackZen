@@ -63,7 +63,7 @@ export default function InviteModal({ onInvite, team, hackathon, project, show, 
       } else if (project) {
         inviteData.projectId = project._id;
       }
-      const res = await fetch("${API_BASE_URL}/api/team-invites", {
+      const res = await fetch(`${API_BASE_URL}/api/team-invites`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

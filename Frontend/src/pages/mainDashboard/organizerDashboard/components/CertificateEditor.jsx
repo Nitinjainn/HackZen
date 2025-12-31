@@ -470,7 +470,7 @@ export default function CertificateEditor({ onBack, template, onDelete }) {
 
       const url = template?._id
         ? `${API_BASE_URL}/api/certificate-pages/${template._id}`
-        : "${API_BASE_URL}/api/certificate-pages";
+        : `${API_BASE_URL}/api/certificate-pages`;
       
       const method = template?._id ? "PUT" : "POST";
 

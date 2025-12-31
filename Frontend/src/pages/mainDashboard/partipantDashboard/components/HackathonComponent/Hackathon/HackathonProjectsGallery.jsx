@@ -105,7 +105,7 @@ export default function HackathonProjectsGallery({ hackathonId, onProjectClick, 
       if (!token) return;
       
       try {
-        const userRes = await axios.get("${API_BASE_URL}/api/users/me", {
+        const userRes = await axios.get(`${API_BASE_URL}/api/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(userRes.data);

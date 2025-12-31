@@ -414,7 +414,7 @@ export default function ProjectSubmission({
       const url =
         mode === "edit"
           ? `${API_BASE_URL}/api/projects/${projectId}`
-          : "${API_BASE_URL}/api/projects";
+          : `${API_BASE_URL}/api/projects`;
 
       const method = mode === "edit" ? "PUT" : "POST";
 

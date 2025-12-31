@@ -125,7 +125,7 @@ export function OrganizerTools() {
     const fetchAnalytics = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("${API_BASE_URL}/api/hackathons/my", {
+        const res = await fetch(`${API_BASE_URL}/api/hackathons/my`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const hackathons = await res.json();

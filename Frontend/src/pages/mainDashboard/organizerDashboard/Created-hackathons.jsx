@@ -72,7 +72,7 @@ export function CreatedHackathons({ onCreateNew }) {
     const fetchHackathons = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("${API_BASE_URL}/api/hackathons/my", {
+        const res = await fetch(`${API_BASE_URL}/api/hackathons/my`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

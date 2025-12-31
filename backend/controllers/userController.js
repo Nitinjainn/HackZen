@@ -144,6 +144,11 @@ const registerUser = async (req, res) => {
         }
       });
       
+      // Verify transporter before sending
+      console.log('[registerUser] Verifying email transporter...');
+      await transporter.verify();
+      console.log('[registerUser] Email transporter verified successfully');
+      
       console.log('[registerUser] Preparing email template...');
       const emailTemplate = `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #f4f6fb; border-radius: 12px;">
@@ -163,25 +168,43 @@ const registerUser = async (req, res) => {
       `;
       
       console.log('[registerUser] Sending verification email to:', email);
-      await transporter.sendMail({
+      const mailResult = await transporter.sendMail({
         from: `"HackZen" <${process.env.MAIL_USER}>`,
         to: email,
         subject: 'Your Verification Code for HackZen Registration',
         html: emailTemplate
       });
       
-      console.log('[registerUser] Verification email sent successfully to', email);
+      console.log('[registerUser] Verification email sent successfully to', email, 'Message ID:', mailResult.messageId);
       res.status(200).json({ message: 'Verification code sent to your email.' });
     } catch (emailError) {
       console.error('[registerUser] Email sending error:', emailError);
       console.error('[registerUser] Email error details:', {
         message: emailError.message,
         code: emailError.code,
+        command: emailError.command,
         response: emailError.response,
+        responseCode: emailError.responseCode,
         stack: emailError.stack
       });
-      // Still save the pending user, but return error about email
-      throw new Error(`Failed to send verification email: ${emailError.message}`);
+      
+      // Clean up pending user if email fails
+      await PendingUser.deleteOne({ email });
+      
+      // Return user-friendly error message
+      let errorMessage = 'Failed to send verification email. Please check your email address and try again.';
+      if (emailError.code === 'EAUTH') {
+        errorMessage = 'Email service authentication failed. Please contact support.';
+      } else if (emailError.code === 'ECONNECTION') {
+        errorMessage = 'Could not connect to email service. Please try again later.';
+      } else if (emailError.responseCode === 550) {
+        errorMessage = 'Invalid email address. Please check and try again.';
+      }
+      
+      return res.status(500).json({ 
+        message: errorMessage,
+        error: process.env.NODE_ENV === 'development' ? emailError.message : undefined
+      });
     }
   } catch (err) {
     console.error('[registerUser] Registration error:', err);

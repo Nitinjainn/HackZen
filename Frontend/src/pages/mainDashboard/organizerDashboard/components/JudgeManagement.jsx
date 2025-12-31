@@ -195,7 +195,7 @@ export default function JudgeManagement({ hackathonId, hideHackathonSelector = f
   const fetchHackathons = async () => {
     try {
       const response = await fetch(
-        "${API_BASE_URL}/api/hackathons/my",
+        `${API_BASE_URL}/api/hackathons/my`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

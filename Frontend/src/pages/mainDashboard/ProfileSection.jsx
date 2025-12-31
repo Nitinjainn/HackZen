@@ -237,7 +237,7 @@ export function ProfileSection({ viewUserId }) {
       const token = localStorage.getItem("token");
       console.log("🔍 2FA status fetch - token:", token);
       const response = await axios.get(
-        "${API_BASE_URL}/api/users/2fa/status",
+        `${API_BASE_URL}/api/users/2fa/status`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -288,7 +288,7 @@ export function ProfileSection({ viewUserId }) {
     try {
       console.log("Disabling 2FA...", { hasPassword: !!currentPassword });
       const response = await axios.post(
-        "${API_BASE_URL}/api/users/2fa/disable",
+        `${API_BASE_URL}/api/users/2fa/disable`,
         { currentPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -2363,7 +2363,7 @@ export function ProfileSection({ viewUserId }) {
 
     try {
       const uploadRes = await axios.post(
-        "${API_BASE_URL}/api/uploads/image",
+        `${API_BASE_URL}/api/uploads/image`,
         formData
       );
       const imageUrl = uploadRes.data.url;
@@ -2413,7 +2413,7 @@ export function ProfileSection({ viewUserId }) {
 
     try {
       const uploadRes = await axios.post(
-        "${API_BASE_URL}/api/uploads/image",
+        `${API_BASE_URL}/api/uploads/image`,
         formData
       );
       const imageUrl = uploadRes.data.url;

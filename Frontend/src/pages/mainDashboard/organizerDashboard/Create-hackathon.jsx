@@ -378,7 +378,7 @@ export default function CreateHackathon({
     uploadFormData.append("image", file);
 
     try {
-      const res = await fetch("${API_BASE_URL}/api/uploads/image", {
+      const res = await fetch(`${API_BASE_URL}/api/uploads/image`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -499,7 +499,7 @@ export default function CreateHackathon({
         ...(isAdminCreate ? { approvalStatus: "approved" } : {}),
       };
 
-      const response = await fetch("${API_BASE_URL}/api/hackathons", {
+      const response = await fetch(`${API_BASE_URL}/api/hackathons`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

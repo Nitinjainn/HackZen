@@ -59,7 +59,7 @@ export default function JudgePanel() {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(
-          "${API_BASE_URL}/api/users/me/judge-hackathons",
+          `${API_BASE_URL}/api/users/me/judge-hackathons`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -84,7 +84,7 @@ export default function JudgePanel() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const res = await fetch("${API_BASE_URL}/api/users/judge-stats", {
+        const res = await fetch(`${API_BASE_URL}/api/users/judge-stats`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -105,7 +105,7 @@ export default function JudgePanel() {
   // Fetch pending judge invites
   useEffect(() => {
     if (!token) return;
-    fetch("${API_BASE_URL}/api/role-invites/my", {
+    fetch(`${API_BASE_URL}/api/role-invites/my`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())

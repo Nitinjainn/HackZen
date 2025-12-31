@@ -32,7 +32,7 @@ export default function InviteRole() {
       const userToken = localStorage.getItem('token');
       if (userToken) {
         // Verify token and get user info
-        fetch('${API_BASE_URL}/api/users/me', {
+        fetch(`${API_BASE_URL}/api/users/me`, {
           headers: { Authorization: `Bearer ${userToken}` }
         })
         .then(res => {
