@@ -696,7 +696,7 @@ export default function SignupPage() {
           }
         },
         didOpen: () => {
-          if (error) {
+          if (error && MySwal && typeof MySwal.showValidationMessage === 'function') {
             MySwal.showValidationMessage(error)
           }
         }
@@ -710,8 +710,17 @@ export default function SignupPage() {
         console.log('[RegistrationPage] Verification successful');
       } catch (err) {
         console.error('[RegistrationPage] Verification failed in popup:', err);
-        error = err?.message || "Verification failed. Please try again."
+        error = err?.response?.data?.message || err?.message || "Verification failed. Please try again."
+        if (MySwal && typeof MySwal.showValidationMessage === 'function') {
         MySwal.showValidationMessage(error)
+        } else {
+          // Fallback if showValidationMessage is not available
+          MySwal.fire({
+            icon: 'error',
+            title: 'Verification Failed',
+            text: error
+          })
+        }
       } finally {
         setLoading(false)
       }

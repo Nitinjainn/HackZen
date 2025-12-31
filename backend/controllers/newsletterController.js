@@ -1,15 +1,11 @@
 const Newsletter = require("../model/NewsletterModel");
-const nodemailer = require("nodemailer");
+const sgMail = require('@sendgrid/mail');
 require("dotenv").config();
 
-// Setup nodemailer transporter
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS,
-  },
-});
+// Initialize SendGrid
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 // Helper: Generate styled HTML newsletter template
 function generateNewsletterHTML(subject, content) {
@@ -148,14 +144,25 @@ const sendNewsletter = async (req, res) => {
   try {
     const subscribers = await Newsletter.find();
 
+    if (!process.env.SENDGRID_API_KEY) {
+      return res.status(500).json({ message: "Email service not configured. Please set SENDGRID_API_KEY." });
+    }
+    
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+    const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+    
     const sendPromises = subscribers.map(async (subscriber) => {
       try {
-        await transporter.sendMail({
-          from: `"HackZen" <${process.env.MAIL_USER}>`,
+        const msg = {
           to: subscriber.email,
+          from: {
+            email: fromEmail,
+            name: fromName
+          },
           subject: subject,
           html: generateNewsletterHTML(subject, content),
-        });
+        };
+        await sgMail.send(msg);
       } catch (err) {
         console.error(`❌ Failed to send to ${subscriber.email}:`, err.message);
       }

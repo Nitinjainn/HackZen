@@ -4,7 +4,7 @@ const Team = require('../model/TeamModel');
 const User = require('../model/UserModel');
 const Hackathon = require('../model/HackathonModel');
 const HackathonRegistration = require('../model/HackathonRegistrationModel');
-const nodemailer = require('nodemailer');
+// SendGrid is required inline where needed
 const RoleInvite = require('../model/RoleInviteModel');
 const JudgeAssignment = require('../model/JudgeAssignmentModel');
 const Notification = require('../model/NotificationModel');
@@ -79,28 +79,10 @@ const createInvite = async (req, res) => {
       : 'http://localhost:5173';
     const inviteLink = `${frontendUrl}/invite/${invite._id}`;
 
-    // Check if email credentials are set
-    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      console.error('Email credentials not configured');
-      return res.status(500).json({ error: 'Email service not configured' });
-    }
-
-    // Setup nodemailer with user's email credentials
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-      }
-    });
-
-    // Verify transporter configuration
-    try {
-      await transporter.verify();
-      console.log('Email transporter verified successfully');
-    } catch (verifyError) {
-      console.error('Email transporter verification failed:', verifyError);
-      return res.status(500).json({ error: 'Email service configuration error' });
+    // Check if SendGrid API key is set
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error('SendGrid API key not configured');
+      return res.status(500).json({ error: 'Email service not configured. Please set SENDGRID_API_KEY.' });
     }
 
     const contextTitle = hackathon ? hackathon.title : project.title;
@@ -157,14 +139,24 @@ const createInvite = async (req, res) => {
     `;
 
     try {
-      const mailResult = await transporter.sendMail({
-        from: `"HackZen Team" <${process.env.MAIL_USER}>`,
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      
+      const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+      const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+      
+      const msg = {
         to: invitedEmail,
+        from: {
+          email: fromEmail,
+          name: fromName
+        },
         subject: `🎉 You're invited to join ${team.name} for ${contextTitle}!`,
         html: emailTemplate
-      });
+      };
 
-      console.log('Email sent successfully:', mailResult.messageId);
+      const result = await sgMail.send(msg);
+      console.log('Email sent successfully:', result[0]?.statusCode);
       res.status(201).json({ message: 'Invite sent successfully', invite });
     } catch (emailError) {
       console.error('Email sending failed:', emailError);

@@ -8,7 +8,7 @@ const RoleInvite = require('../model/RoleInviteModel');
 const Score = require('../model/ScoreModel');
 const PendingUser = require('../model/PendingUserModel');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const PasswordResetToken = require('../model/PasswordResetTokenModel');
 
 // Additional models for complete user deletion
@@ -109,10 +109,14 @@ const registerUser = async (req, res) => {
       console.log('[registerUser] Verification code already sent and not expired:', email);
       console.log('[registerUser] Code expires at:', pending.codeExpiresAt);
       console.log('[registerUser] Current time:', new Date());
+      console.log('[registerUser] Code:', pending.verificationCode);
       // Return success status so frontend shows the popup
+      // Include the code in development for testing (remove in production)
       return res.status(200).json({ 
         message: 'Verification code already sent. Please check your email.',
-        codeAlreadySent: true
+        codeAlreadySent: true,
+        // Only include code in development for debugging
+        ...(process.env.NODE_ENV === 'development' ? { debugCode: pending.verificationCode } : {})
       });
     }
     
@@ -131,16 +135,8 @@ const registerUser = async (req, res) => {
     const verificationCode = (Math.floor(100000 + Math.random() * 900000)).toString();
     const codeExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     
-    console.log('[registerUser] Storing pending user in database...');
-    // Store in PendingUser
-    await PendingUser.findOneAndUpdate(
-      { email },
-      { name, email, passwordHash, verificationCode, codeExpiresAt, createdAt: new Date(), role },
-      { upsert: true }
-    );
-    console.log('[registerUser] Pending user stored successfully');
-    
-    // Prepare email template (used by both Resend and SMTP)
+    // Prepare email template
+    // NOTE: We'll store pending user ONLY after email is successfully sent
     const emailTemplate = `
       <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #f4f6fb; border-radius: 12px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -160,274 +156,127 @@ const registerUser = async (req, res) => {
     
     const emailText = `Hi ${name || email},\n\nThank you for registering! Please use the code below to verify your email address. This code is valid for 10 minutes.\n\nVerification Code: ${verificationCode}\n\nIf you did not request this, you can ignore this email.\n\n© 2025 HackZen Platform`;
     
-    // ✅ PREFERRED: Use Resend API if configured (works perfectly on Render, sends to ANY email)
-    // IMPORTANT: Resend can send TO any email address without domain verification
-    // Domain verification only affects the FROM address
-    console.log('[registerUser] Checking email service configuration...', {
-      hasResendKey: !!process.env.RESEND_API_KEY,
-      hasMailUser: !!process.env.MAIL_USER,
-      hasMailPass: !!process.env.MAIL_PASS
-    });
-    
-    if (process.env.RESEND_API_KEY) {
-      try {
-        const { Resend } = require('resend');
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        
-        console.log('[registerUser] ✅ Using Resend API for email sending (recommended for Render)');
-        console.log('[registerUser] Sending to:', email, '(can be ANY email address)');
-        
-        // FROM address: Use verified domain email OR default Resend email
-        // You can verify your domain later, but for now use onboarding@resend.dev
-        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-        console.log('[registerUser] Resend FROM email:', fromEmail);
-        
-        const result = await resend.emails.send({
-          from: `HackZen <${fromEmail}>`,
-          to: email, // ✅ Can be ANY email address - jaingaurav906@gmail.com, etc.
-          subject: 'Your Verification Code for HackZen Registration',
-          html: emailTemplate,
-          text: emailText
-        });
-        
-        console.log('[registerUser] ✅ Resend API response:', JSON.stringify(result, null, 2));
-        
-        // Check if email was actually sent successfully
-        if (result.error) {
-          console.error('[registerUser] ❌ Resend API returned error:', result.error);
-          throw new Error(result.error.message || 'Resend API error');
-        }
-        
-        if (!result.data || !result.data.id) {
-          console.error('[registerUser] ❌ Resend API response missing email ID:', result);
-          throw new Error('Resend API did not return email ID');
-        }
-        
-        console.log('[registerUser] ✅ Resend email sent successfully:', {
-          id: result.data.id,
-          to: email,
-          from: fromEmail
-        });
-        
-        res.status(200).json({ 
-          message: 'Verification code sent to your email.',
-          success: true,
-          emailService: 'resend'
-        });
-        return; // Success, exit early
-      } catch (resendError) {
-        console.error('[registerUser] ❌ Resend API error:', resendError);
-        console.error('[registerUser] Resend error details:', {
-          message: resendError.message,
-          name: resendError.name,
-          code: resendError.code,
-          statusCode: resendError.statusCode,
-          response: resendError.response,
-          stack: resendError.stack
-        });
-        // Don't fall through to SMTP - return error instead
-        await PendingUser.deleteOne({ email });
-        return res.status(500).json({ 
-          message: 'Failed to send verification email via Resend. Please try again or contact support.',
-          error: process.env.NODE_ENV === 'development' ? resendError.message : undefined,
-          emailService: 'resend'
-        });
-      }
-    }
-    
-    // ✅ FALLBACK: Use SMTP (Gmail) if Resend not configured
-    // NOTE: SMTP often fails on Render due to network restrictions
-    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      console.error('[registerUser] ❌ No email service configured');
-      console.error('[registerUser] Environment variables check:', {
-        hasResendKey: !!process.env.RESEND_API_KEY,
-        hasMailUser: !!process.env.MAIL_USER,
-        hasMailPass: !!process.env.MAIL_PASS
+    // ✅ Use SendGrid API (works on both localhost and Render, sends to ANY email)
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error('[registerUser] ❌ SendGrid API key not configured');
+      console.error('[registerUser] Environment check:', {
+        SENDGRID_API_KEY: process.env.SENDGRID_API_KEY ? 'SET' : 'NOT SET',
+        NODE_ENV: process.env.NODE_ENV
       });
       await PendingUser.deleteOne({ email });
       return res.status(500).json({ 
-        message: 'Email service not configured. Please set RESEND_API_KEY in environment variables.',
-        error: 'RESEND_API_KEY or MAIL_USER/MAIL_PASS environment variables are not set',
-        hint: 'For Render, use RESEND_API_KEY (recommended)'
+        message: 'Email service not configured. Please set SENDGRID_API_KEY in environment variables.',
+        error: 'SENDGRID_API_KEY environment variable is not set'
       });
     }
     
-    console.log('[registerUser] ⚠️ Using SMTP (Gmail) for email sending (may fail on Render)');
-    console.log('[registerUser] ⚠️ WARNING: SMTP often fails on Render. Consider using Resend API instead.');
-    console.log('[registerUser] Email config check:', {
-      hasMailUser: !!process.env.MAIL_USER,
-      hasMailPass: !!process.env.MAIL_PASS,
-      mailUser: process.env.MAIL_USER ? `${process.env.MAIL_USER.substring(0, 3)}...` : 'NOT SET',
-      isProduction: process.env.NODE_ENV === 'production' || !!process.env.RENDER
-    });
-    
-    // Use explicit SMTP config for better reliability on Render/production
-    // Try port 465 (SSL) first, fallback to 587 (STARTTLS)
-    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-    const smtpPort = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '465');
-    const useSecure = smtpPort === 465;
-    
     try {
+      // Initialize SendGrid - IMPORTANT: Set API key every time
+      const apiKey = process.env.SENDGRID_API_KEY;
+      if (!apiKey || apiKey.trim() === '') {
+        throw new Error('SENDGRID_API_KEY is empty or invalid');
+      }
       
-      console.log('[registerUser] SMTP Configuration:', {
-        host: smtpHost,
-        port: smtpPort,
-        secure: useSecure,
-        user: process.env.MAIL_USER ? `${process.env.MAIL_USER.substring(0, 3)}...` : 'NOT SET'
-      });
+      // Ensure API key is set (in case module was loaded before env vars)
+      sgMail.setApiKey(apiKey.trim());
       
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: useSecure, // true for 465, false for other ports
-        auth: {
-          user: process.env.MAIL_USER,
-          pass: process.env.MAIL_PASS
+      const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+      const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+      
+      console.log('[registerUser] ✅ Using SendGrid API for email sending');
+      console.log('[registerUser] API Key present:', !!apiKey);
+      console.log('[registerUser] API Key length:', apiKey ? apiKey.length : 0);
+      console.log('[registerUser] API Key starts with:', apiKey ? apiKey.substring(0, 3) : 'N/A');
+      console.log('[registerUser] Sending to:', email, '(can be ANY email address)');
+      console.log('[registerUser] From:', `${fromName} <${fromEmail}>`);
+      
+      // Validate from email
+      if (!fromEmail || !fromEmail.includes('@')) {
+        throw new Error('Invalid SENDGRID_FROM_EMAIL configuration');
+      }
+      
+      const msg = {
+        to: email,
+        from: {
+          email: fromEmail,
+          name: fromName
         },
-        // Enhanced connection options for production/render
-        connectionTimeout: 30000, // 30 seconds
-        greetingTimeout: 30000,
-        socketTimeout: 30000,
-        // Additional options for reliability
-        tls: {
-          rejectUnauthorized: false, // Accept self-signed certs if needed (needed for some Render setups)
-          minVersion: 'TLSv1.2'
-        },
-        // Pool connections for better performance
-        pool: true,
-        maxConnections: 1,
-        maxMessages: 3
+        subject: 'Your Verification Code for HackZen Registration',
+        html: emailTemplate,
+        text: emailText
+      };
+      
+      const result = await sgMail.send(msg);
+      
+      console.log('[registerUser] ✅ SendGrid email sent successfully:', {
+        statusCode: result[0]?.statusCode,
+        headers: result[0]?.headers,
+        to: email,
+        from: fromEmail
       });
       
-      // Skip verification in production - it often fails on Render but sendMail works
-      const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
-      if (!isProduction) {
-        console.log('[registerUser] Verifying email transporter...');
-        try {
-          await transporter.verify();
-          console.log('[registerUser] Email transporter verified successfully');
-        } catch (verifyError) {
-          console.warn('[registerUser] Transporter verification failed, but continuing:', verifyError.message);
-        }
-      } else {
-        console.log('[registerUser] Skipping transporter verification in production (Render compatibility)');
-      }
-      
-      console.log('[registerUser] Sending verification email via SMTP to:', email);
-      
-      // Retry logic for email sending (useful for Render network issues)
-      let mailResult;
-      let lastError;
-      const maxRetries = 2;
-      
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          console.log(`[registerUser] Email send attempt ${attempt}/${maxRetries}`);
-          mailResult = await transporter.sendMail({
-            from: `"HackZen" <${process.env.MAIL_USER}>`,
-            to: email,
-            subject: 'Your Verification Code for HackZen Registration',
-            html: emailTemplate,
-            text: emailText
-          });
-          console.log(`[registerUser] Email sent successfully on attempt ${attempt}`);
-          break; // Success, exit retry loop
-        } catch (retryError) {
-          lastError = retryError;
-          console.error(`[registerUser] Email send attempt ${attempt} failed:`, retryError.message);
-          
-          // If it's a connection error and we have retries left, wait and retry
-          if ((retryError.code === 'ECONNECTION' || retryError.code === 'ETIMEDOUT' || retryError.code === 'ESOCKET') && attempt < maxRetries) {
-            console.log(`[registerUser] Waiting 2 seconds before retry...`);
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            continue;
-          }
-          // Otherwise, throw the error
-          throw retryError;
-        }
-      }
-      
-      if (!mailResult) {
-        throw lastError || new Error('Failed to send email after retries');
-      }
-      
-      console.log('[registerUser] Verification email sent successfully to', email, 'Message ID:', mailResult.messageId);
-      console.log('[registerUser] Email response:', {
-        accepted: mailResult.accepted,
-        rejected: mailResult.rejected,
-        response: mailResult.response
-      });
-      
-      // Check if email was actually accepted
-      if (mailResult.rejected && mailResult.rejected.length > 0) {
-        console.error('[registerUser] Email was rejected:', mailResult.rejected);
-        await PendingUser.deleteOne({ email });
-        return res.status(500).json({ 
-          message: 'Failed to send verification email. The email address may be invalid.',
-          error: 'Email rejected by mail server'
-        });
-      }
+      // ✅ ONLY store pending user AFTER email is successfully sent
+      console.log('[registerUser] Storing pending user in database (email sent successfully)...');
+      await PendingUser.findOneAndUpdate(
+        { email },
+        { name, email, passwordHash, verificationCode, codeExpiresAt, createdAt: new Date(), role },
+        { upsert: true }
+      );
+      console.log('[registerUser] Pending user stored successfully');
       
       res.status(200).json({ 
         message: 'Verification code sent to your email.',
         success: true,
-        emailService: 'smtp'
+        emailService: 'sendgrid'
       });
     } catch (emailError) {
-      console.error('[registerUser] Email sending error:', emailError);
-      console.error('[registerUser] Email error details:', {
+      console.error('[registerUser] ❌ SendGrid API error:', emailError);
+      console.error('[registerUser] SendGrid error details:', {
         message: emailError.message,
         code: emailError.code,
-        command: emailError.command,
         response: emailError.response,
-        responseCode: emailError.responseCode,
-        errno: emailError.errno,
-        syscall: emailError.syscall,
-        hostname: emailError.hostname,
-        port: emailError.port,
+        responseBody: emailError.response?.body,
+        responseHeaders: emailError.response?.headers,
         stack: emailError.stack
       });
       
       // Clean up pending user if email fails
       await PendingUser.deleteOne({ email });
       
-      // Return user-friendly error message based on error type
+      // Return user-friendly error message
       let errorMessage = 'Failed to send verification email. Please try again or contact support if the problem persists.';
       let statusCode = 500;
       
-      console.error('[registerUser] Email error code:', emailError.code);
-      console.error('[registerUser] Email error message:', emailError.message);
-      
-      if (emailError.code === 'EAUTH' || emailError.code === 'EENVELOPE') {
-        errorMessage = 'Email service authentication failed. Please contact support.';
-        statusCode = 503; // Service Unavailable
-      } else if (emailError.code === 'ECONNECTION' || emailError.code === 'ETIMEDOUT' || emailError.code === 'ESOCKET') {
-        // Connection issues - common on Render
-        console.log('[registerUser] Connection failed - this might be a Render network issue');
-        errorMessage = 'Email service temporarily unavailable. Please try again in a few moments. If the problem persists, contact support.';
-        statusCode = 503;
-      } else if (emailError.responseCode === 550) {
-        errorMessage = 'Invalid email address. Please check your email and try again.';
-        statusCode = 400; // Bad Request
-      } else if (emailError.message && (emailError.message.includes('Invalid login') || emailError.message.includes('authentication'))) {
-        errorMessage = 'Email service configuration error. Please contact support.';
-        statusCode = 503;
-      } else if (emailError.code === 'ECERTHASEXPIRED' || emailError.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
-        errorMessage = 'Email service certificate error. Please contact support.';
-        statusCode = 503;
+      if (emailError.response) {
+        const { body, statusCode: httpStatus } = emailError.response;
+        console.error('[registerUser] SendGrid HTTP error:', httpStatus);
+        console.error('[registerUser] SendGrid error body:', JSON.stringify(body, null, 2));
+        
+        if (httpStatus === 401 || httpStatus === 403) {
+          errorMessage = 'Email service authentication failed. Please check your SendGrid API key.';
+          statusCode = 503;
+        } else if (httpStatus === 400) {
+          // SendGrid 400 errors often contain helpful messages
+          const sgMessage = body?.errors?.[0]?.message || body?.message || 'Invalid email address or request.';
+          errorMessage = `Email sending failed: ${sgMessage}`;
+          statusCode = 400;
+        } else if (httpStatus >= 500) {
+          errorMessage = 'Email service temporarily unavailable. Please try again in a few moments.';
+          statusCode = 503;
+        }
+      } else if (emailError.message) {
+        // For non-HTTP errors, include the message in development
+        if (process.env.NODE_ENV === 'development') {
+          errorMessage = `Email sending failed: ${emailError.message}`;
+        }
       }
       
       return res.status(statusCode).json({ 
         message: errorMessage,
-        error: process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production' 
-          ? emailError.message 
-          : undefined,
-        code: emailError.code,
-        // Include helpful debug info in development
-        debug: process.env.NODE_ENV === 'development' ? {
-          host: smtpHost,
-          port: smtpPort,
-          secure: useSecure
+        error: process.env.NODE_ENV === 'development' ? emailError.message : undefined,
+        details: process.env.NODE_ENV === 'development' ? {
+          code: emailError.code,
+          response: emailError.response?.body
         } : undefined
       });
     }
@@ -1592,17 +1441,11 @@ const forgotPassword = async (req, res) => {
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
     await PasswordResetToken.create({ userId: user._id, token, expiresAt });
-    // Send email
-    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+    // Send email using SendGrid
+    if (!process.env.SENDGRID_API_KEY) {
       return res.status(500).json({ message: 'Email service not configured' });
     }
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-      }
-    });
+    
     // Get frontend URL based on environment
     const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
       ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app')
@@ -1621,15 +1464,31 @@ const forgotPassword = async (req, res) => {
           </div>
           <p style="color: #888; font-size: 14px;">If you did not request this, you can ignore this email.</p>
         </div>
-        <div style="text-align: center; margin-top: 16px; color: #aaa; font-size: 12px;">&copy; 2024 STPI Hackathon Platform</div>
+        <div style="text-align: center; margin-top: 16px; color: #aaa; font-size: 12px;">&copy; 2025 HackZen Platform</div>
       </div>
     `;
-    await transporter.sendMail({
-      from: `"STPI Hackathon" <${process.env.MAIL_USER}>`,
-      to: email,
-      subject: 'Reset your password for STPI',
-      html: emailTemplate
-    });
+    
+    try {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+      const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+      
+      const msg = {
+        to: email,
+        from: {
+          email: fromEmail,
+          name: fromName
+        },
+        subject: 'Reset your password for HackZen',
+        html: emailTemplate
+      };
+      
+      await sgMail.send(msg);
+      console.log('[forgotPassword] Password reset email sent successfully to:', email);
+    } catch (emailError) {
+      console.error('[forgotPassword] Failed to send password reset email:', emailError);
+      // Still return success to user for security (don't reveal if email exists)
+    }
     return res.status(200).json({ message: 'If this email is registered, you will receive a password reset link.' });
   } catch (err) {
     res.status(500).json({ error: err.message });

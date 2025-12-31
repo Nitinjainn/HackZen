@@ -4,8 +4,7 @@ const ChatRoom = require('../model/ChatRoomModel');
 const User = require('../model/UserModel');
 const RoleInvite = require('../model/RoleInviteModel');
 const crypto = require('crypto');
-const transporter = require('../config/mailer');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const { awardOrganizerBadges } = require('../utils/badgeUtils');
 const HackathonRegistration = require('../model/HackathonRegistrationModel');
 const CertificatePage = require('../model/CertificatePageModel');
@@ -15,18 +14,37 @@ const fs = require('fs'); // Add at the top
 // ... (all existing helper functions like sendCertificateEmail and generateCertificateImage remain the same)
 
 // Helper: Send certificate email with personalized image
-async function sendCertificateEmail(transporter, to, buffer, hackathonTitle) {
- return transporter.sendMail({
- to,
- subject: `Your Certificate for ${hackathonTitle}`,
+async function sendCertificateEmail(to, buffer, hackathonTitle) {
+ if (!process.env.SENDGRID_API_KEY) {
+  throw new Error('SENDGRID_API_KEY not configured');
+ }
+ 
+ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+ const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+ const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+ 
+ // Convert buffer to base64 for SendGrid attachment
+ const base64Content = buffer.toString('base64');
+ 
+ const msg = {
+  to,
+  from: {
+   email: fromEmail,
+   name: fromName
+  },
+  subject: `Your Certificate for ${hackathonTitle}`,
   text: `Congratulations! Please find your certificate attached.`,
   attachments: [
    {
+    content: base64Content,
     filename: 'certificate.png',
-    content: buffer
-  }
+    type: 'image/png',
+    disposition: 'attachment'
+   }
   ]
- });
+ };
+ 
+ return await sgMail.send(msg);
 }
 
 // Helper: Generate certificate image with personalized fields
@@ -333,19 +351,13 @@ exports.updateHackathon = async (req, res) => {
     MAIL_PASS_VALUE: process.env.MAIL_PASS ? 'SET' : 'NOT SET'
    });
   
-   if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-    console.log('Email credentials not configured - skipping email send');
-    console.log('Please check your environment variables: MAIL_USER and MAIL_PASS');
+   if (!process.env.SENDGRID_API_KEY) {
+    console.log('SendGrid API key not configured - skipping email send');
+    console.log('Please check your environment variable: SENDGRID_API_KEY');
     return;
    }
   
-   const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-     user: process.env.MAIL_USER,
-     pass: process.env.MAIL_PASS
-    }
-   });
+   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   
    // Get frontend URL based on environment
    const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
@@ -425,12 +437,20 @@ exports.updateHackathon = async (req, res) => {
    try {
     console.log(`Sending email to ${email} for ${role} role in hackathon: ${hackathonData.title}`);
    
-    await transporter.sendMail({
-     from: `"HackZen Team" <${process.env.MAIL_USER}>`,
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+    const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+    
+    const msg = {
      to: email,
+     from: {
+      email: fromEmail,
+      name: fromName
+     },
      subject: `${roleIcon} You're invited to be a ${roleDisplay} for ${hackathonData.title}!`,
      html: emailTemplate
-    });
+    };
+    
+    await sgMail.send(msg);
    
     console.log(`Role invite email sent successfully to ${email} for ${role} role`);
    } catch (emailError) {
@@ -680,17 +700,15 @@ exports.updateApprovalStatus = async (req, res) => {
      return;
     }
    
-    let emailTransporter;
+    if (!process.env.SENDGRID_API_KEY) {
+     console.log('[updateApprovalStatus] SendGrid API key not configured - skipping email send');
+     return;
+    }
+    
     try {
-     emailTransporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-       user: process.env.MAIL_USER,
-       pass: process.env.MAIL_PASS
-      }
-     });
-    } catch (transporterError) {
-     console.error('[updateApprovalStatus] Failed to create email transporter:', transporterError);
+     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    } catch (error) {
+     console.error('[updateApprovalStatus] Failed to initialize SendGrid:', error);
      return;
     }
    
@@ -1173,7 +1191,7 @@ exports.sendCertificates = async (req, res) => {
     // 1. Generate certificate image
     const buffer = await generateCertificateImage(template, personalizedFields);
     // 2. Send email with image attachment
-    await sendCertificateEmail(transporter, participant.email, buffer, hackathon.title);
+    await sendCertificateEmail(participant.email, buffer, hackathon.title);
     sentCount++;
    } catch (err) {
     failed.push({ email: participant.email, error: err.message });

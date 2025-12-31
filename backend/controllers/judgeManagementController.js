@@ -4,7 +4,7 @@ const User = require('../model/UserModel');
 const Team = require('../model/TeamModel');
 const RoleInvite = require('../model/RoleInviteModel');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const Submission = require('../model/SubmissionModel');
 const Score = require('../model/ScoreModel');
 const mongoose = require('mongoose');
@@ -1018,14 +1018,8 @@ function validateJudgeTypeChange(oldType, newType, sponsorCompany) {
 
 // Helper function to send judge/mentor invite email (copied from hackathonController.js)
 async function sendRoleInviteEmail(email, role, token, hackathonData) {
-  if (!process.env.MAIL_USER || !process.env.MAIL_PASS) return;
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.MAIL_USER,
-      pass: process.env.MAIL_PASS
-    }
-  });
+  if (!process.env.SENDGRID_API_KEY) return;
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   // Get frontend URL based on environment
   const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
     ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app')
@@ -1092,12 +1086,20 @@ async function sendRoleInviteEmail(email, role, token, hackathonData) {
     </div>
   `;
   try {
-    await transporter.sendMail({
-      from: `"HackZen Team" <${process.env.MAIL_USER}>`,
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+    const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+    
+    const msg = {
       to: email,
+      from: {
+        email: fromEmail,
+        name: fromName
+      },
       subject: `${roleIcon} You're invited to be a ${roleDisplay} for ${hackathonData.title}!`,
       html: emailTemplate
-    });
+    };
+    
+    await sgMail.send(msg);
     console.log(`Role invite email sent successfully to ${email} for ${role} role`);
   } catch (emailError) {
     console.error('Role invite email sending failed:', emailError);
@@ -4729,19 +4731,13 @@ async function sendSubmissionAssignmentEmail(judgeEmail, judgeName, hackathon, s
     hasEmailCredentials: !!(process.env.MAIL_USER && process.env.MAIL_PASS)
   });
 
-  if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-    console.log('🔍 DEBUG: Email credentials not configured, skipping submission assignment notification');
+  if (!process.env.SENDGRID_API_KEY) {
+    console.log('🔍 DEBUG: SendGrid API key not configured, skipping submission assignment notification');
     return;
   }
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-      }
-    });
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
     console.log('🔍 DEBUG: Email transporter created successfully');
 
@@ -4849,12 +4845,20 @@ async function sendSubmissionAssignmentEmail(judgeEmail, judgeName, hackathon, s
 
     console.log('🔍 DEBUG: Email template generated, sending email to:', judgeEmail);
 
-    await transporter.sendMail({
-      from: `"HackZen Team" <${process.env.MAIL_USER}>`,
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+    const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+    
+    const msg = {
       to: judgeEmail,
+      from: {
+        email: fromEmail,
+        name: fromName
+      },
       subject: `⚖️ New Submissions Assigned - ${hackathon.title} (${roundName})`,
       html: emailTemplate
-    });
+    };
+    
+    await sgMail.send(msg);
 
     console.log(`✅ Submission assignment notification sent successfully to ${judgeEmail}`);
   } catch (emailError) {
@@ -5076,12 +5080,20 @@ exports.sendShortlistedEmail = async function(userEmail, userName, hackathon, pa
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"HackZen Team" <${process.env.MAIL_USER}>`,
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+    const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+    
+    const msg = {
       to: userEmail,
+      from: {
+        email: fromEmail,
+        name: fromName
+      },
       subject: `🎉 Congratulations! You're Selected for Round 2 - ${hackathon.title}`,
       html: emailTemplate
-    });
+    };
+    
+    await sgMail.send(msg);
 
     console.log(`✅ Shortlisted notification sent to ${userEmail}`);
   } catch (emailError) {
@@ -5137,12 +5149,20 @@ exports.sendNotShortlistedEmail = async function(userEmail, userName, hackathon,
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"HackZen Team" <${process.env.MAIL_USER}>`,
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+    const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+    
+    const msg = {
       to: userEmail,
+      from: {
+        email: fromEmail,
+        name: fromName
+      },
       subject: `📋 Round 2 Selection Update - ${hackathon.title}`,
       html: emailTemplate
-    });
+    };
+    
+    await sgMail.send(msg);
 
     console.log(`✅ Not shortlisted notification sent to ${userEmail}`);
   } catch (emailError) {

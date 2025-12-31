@@ -1,63 +1,67 @@
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const { createWinnerEmailTemplate, createWinnerEmailText } = require('../templates/winnerEmailTemplate');
 const { createShortlistedEmailTemplate, createShortlistedEmailText } = require('../templates/shortlistedEmailTemplate');
 
-// Create transporter using environment variables or default config
-const createTransporter = () => {
-  const config = {
-    host: process.env.SMTP_HOST || process.env.MAIL_HOST || 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || process.env.MAIL_PORT || 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER || process.env.MAIL_USER || 'your-email@gmail.com',
-      pass: process.env.SMTP_PASS || process.env.MAIL_PASS || 'your-app-password'
+// Initialize SendGrid
+function initializeSendGrid() {
+  if (process.env.SENDGRID_API_KEY) {
+    const apiKey = process.env.SENDGRID_API_KEY.trim();
+    if (apiKey && apiKey.length > 0) {
+      sgMail.setApiKey(apiKey);
+      console.log('🔍 Email Service - SendGrid initialized successfully');
+      return true;
+    } else {
+      console.warn('🔍 Email Service - SENDGRID_API_KEY is empty');
+      return false;
     }
-  };
-  
-  console.log('🔍 Email Service - SMTP Configuration:', {
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    user: config.auth.user,
-    pass: config.auth.pass ? '***' : 'NOT_SET'
-  });
-  
-  return nodemailer.createTransport(config);
-};
+  } else {
+    console.warn('🔍 Email Service - SENDGRID_API_KEY not set');
+    return false;
+  }
+}
+
+// Initialize on module load
+initializeSendGrid();
+
+// Export function to re-initialize if needed
+module.exports.initializeSendGrid = initializeSendGrid;
 
 // Send winner email
 const sendWinnerEmail = async (winnerData, hackathonData, position, recipientEmail) => {
   try {
     console.log('🔍 Email Service - Attempting to send winner email to:', recipientEmail);
     
-    const transporter = createTransporter();
-    
-    // Verify transporter
-    await transporter.verify();
-    console.log('🔍 Email Service - Transporter verified successfully');
+    if (!process.env.SENDGRID_API_KEY) {
+      throw new Error('SENDGRID_API_KEY not configured');
+    }
     
     const htmlContent = createWinnerEmailTemplate(winnerData, hackathonData, position);
     const textContent = createWinnerEmailText(winnerData, hackathonData, position);
     
-    const mailOptions = {
-      from: `"${hackathonData.title} Team" <${process.env.SMTP_USER || process.env.MAIL_USER || 'noreply@hackathon.com'}>`,
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+    const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+    
+    const msg = {
       to: recipientEmail,
+      from: {
+        email: fromEmail,
+        name: `${hackathonData.title} Team`
+      },
       subject: `🏆 Congratulations! You're a Winner - ${hackathonData.title}`,
       html: htmlContent,
       text: textContent
     };
     
-    console.log('🔍 Email Service - Mail options:', {
-      from: mailOptions.from,
-      to: mailOptions.to,
-      subject: mailOptions.subject
+    console.log('🔍 Email Service - Sending winner email:', {
+      to: recipientEmail,
+      subject: msg.subject
     });
     
-    const result = await transporter.sendMail(mailOptions);
+    const result = await sgMail.send(msg);
     console.log('🔍 Email Service - Winner email sent successfully:', {
       to: recipientEmail,
-      subject: mailOptions.subject,
-      messageId: result.messageId
+      subject: msg.subject,
+      statusCode: result[0]?.statusCode
     });
     
     return result;
@@ -66,7 +70,7 @@ const sendWinnerEmail = async (winnerData, hackathonData, position, recipientEma
     console.error('🔍 Email Service - Error details:', {
       message: error.message,
       code: error.code,
-      command: error.command,
+      response: error.response,
       stack: error.stack
     });
     throw error;
@@ -76,28 +80,31 @@ const sendWinnerEmail = async (winnerData, hackathonData, position, recipientEma
 // Send shortlisted participant email
 const sendShortlistedEmail = async (participantData, hackathonData, winners, recipientEmail) => {
   try {
-    const transporter = createTransporter();
-    
-    // Verify transporter
-    await transporter.verify();
-    console.log('🔍 Email Service - Transporter verified successfully for shortlisted email');
+    if (!process.env.SENDGRID_API_KEY) {
+      throw new Error('SENDGRID_API_KEY not configured');
+    }
     
     const htmlContent = createShortlistedEmailTemplate(participantData, hackathonData, winners);
     const textContent = createShortlistedEmailText(participantData, hackathonData, winners);
     
-    const mailOptions = {
-      from: `"${hackathonData.title} Team" <${process.env.SMTP_USER || process.env.MAIL_USER || 'noreply@hackathon.com'}>`,
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+    
+    const msg = {
       to: recipientEmail,
+      from: {
+        email: fromEmail,
+        name: `${hackathonData.title} Team`
+      },
       subject: `🎯 Round 2 Results - ${hackathonData.title}`,
       html: htmlContent,
       text: textContent
     };
     
-    const result = await transporter.sendMail(mailOptions);
+    const result = await sgMail.send(msg);
     console.log('🔍 Email Service - Shortlisted email sent successfully:', {
       to: recipientEmail,
-      subject: mailOptions.subject,
-      messageId: result.messageId
+      subject: msg.subject,
+      statusCode: result[0]?.statusCode
     });
     
     return result;
@@ -106,7 +113,7 @@ const sendShortlistedEmail = async (participantData, hackathonData, winners, rec
     console.error('🔍 Email Service - Error details:', {
       message: error.message,
       code: error.code,
-      command: error.command,
+      response: error.response,
       stack: error.stack
     });
     throw error;
@@ -254,6 +261,5 @@ module.exports = {
   sendWinnerEmail,
   sendShortlistedEmail,
   sendBulkWinnerEmails,
-  sendBulkShortlistedEmails,
-  createTransporter
+  sendBulkShortlistedEmails
 }; 

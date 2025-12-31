@@ -1,7 +1,7 @@
 
-console.log = function () {};
-console.info = function () {};
-
+// Temporarily enable console.log for debugging
+// console.log = function () {};
+// console.info = function () {};
 
 require("dotenv").config();
 
@@ -77,7 +77,8 @@ app.get("/", (req, res) => {
     version: "1.0.0",
     endpoints: {
       api: "/api",
-      health: "/api/health"
+      health: "/api/health",
+      testSendGrid: "/api/test-sendgrid"
     }
   });
 });
@@ -88,6 +89,32 @@ app.get("/api/health", (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || "development"
+  });
+});
+
+// Diagnostic endpoint to check SendGrid configuration
+app.get("/api/test-sendgrid", (req, res) => {
+  console.log('🔍 /api/test-sendgrid endpoint called');
+  const hasApiKey = !!process.env.SENDGRID_API_KEY;
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+  const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+  
+  console.log('🔍 SendGrid config check:', {
+    hasApiKey,
+    fromEmail,
+    fromName,
+    apiKeyLength: process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.length : 0
+  });
+  
+  res.json({
+    sendgridConfigured: hasApiKey,
+    apiKeySet: hasApiKey,
+    fromEmail: fromEmail,
+    fromName: fromName,
+    apiKeyLength: process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.length : 0,
+    message: hasApiKey 
+      ? 'SendGrid is configured correctly' 
+      : 'SENDGRID_API_KEY is not set in environment variables'
   });
 });
 
@@ -122,7 +149,24 @@ app.use("/api/users", require("./routes/userRoutes"));
 //certificatePage
 app.use("/api/certificate-pages", require("./routes/certificatePageRoutes"));
 
-// Add this at the end, after all routes:
+// 404 handler for unmatched routes
+app.use((req, res, next) => {
+  console.log('🔍 404 - Route not found:', req.method, req.path);
+  res.status(404).json({ 
+    message: 'Route not found',
+    method: req.method,
+    path: req.path,
+    availableEndpoints: [
+      '/api/health',
+      '/api/test-sendgrid',
+      '/api/users/register',
+      '/api/hackathons',
+      '/api/teams'
+    ]
+  });
+});
+
+// Error handler
 app.use((err, req, res, next) => {
   const errorString = typeof err === 'object' ? util.inspect(err, { depth: 5 }) : String(err);
   console.error('GLOBAL ERROR:', errorString);
@@ -186,6 +230,9 @@ mongoose.connect(process.env.MONGO_URL)
     
     server.listen(PORT, () => {
       console.log(`🚀 Server + Socket.IO running at http://localhost:${PORT}`);
+      console.log(`📧 SendGrid test endpoint: http://localhost:${PORT}/api/test-sendgrid`);
+      console.log(`🔍 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`📝 SendGrid API Key configured: ${process.env.SENDGRID_API_KEY ? '✅ YES' : '❌ NO'}`);
     });
   })
   .catch((err) => {
