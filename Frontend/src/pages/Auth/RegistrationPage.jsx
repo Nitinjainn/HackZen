@@ -679,9 +679,24 @@ export default function SignupPage() {
     while (!verified) {
       const { value: code } = await MySwal.fire({
         title: "Enter Verification Code",
-        input: "text",
-        inputLabel: "A 6-digit code was sent to your email.",
-        inputPlaceholder: "000000",
+        html: `
+          <div style="padding: 0 12px; margin-bottom: 24px;">
+            <p style="text-align: center; color: #6B7280; font-size: 15px; line-height: 1.6; margin: 0; padding: 0;">
+              A 6-digit verification code has been sent to your email address. Please check your inbox or spam folder.
+            </p>
+          </div>
+          <input 
+            type="text" 
+            id="swal-input1" 
+            class="swal2-input verification-input" 
+            placeholder="000000" 
+            maxlength="6" 
+            style="text-align: center; font-size: 20px; letter-spacing: 10px; font-weight: 600; width: 100%; padding: 16px 20px; border: 2px solid #E5E7EB; border-radius: 12px; margin: 0 auto 24px; display: block;"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+          />
+        `,
         inputAttributes: {
           maxlength: 6,
           autocapitalize: "off",
@@ -690,15 +705,38 @@ export default function SignupPage() {
         showCancelButton: true,
         confirmButtonText: "Verify & Create Account",
         cancelButtonText: "Cancel",
+        confirmButtonColor: "#4F46E5",
+        cancelButtonColor: "#6B7280",
+        width: "450px",
+        padding: "2.5rem",
+        customClass: {
+          popup: "verification-popup",
+          title: "verification-title",
+          htmlContainer: "verification-html",
+          input: "verification-input",
+          confirmButton: "verification-confirm-btn",
+          cancelButton: "verification-cancel-btn"
+        },
         inputValidator: (value) => {
           if (!value || value.length !== 6) {
             return "Please enter the 6-digit code."
           }
         },
         didOpen: () => {
+          const input = document.getElementById('swal-input1')
+          if (input) {
+            input.focus()
+            input.addEventListener('input', (e) => {
+              e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6)
+            })
+          }
           if (error && MySwal && typeof MySwal.showValidationMessage === 'function') {
             MySwal.showValidationMessage(error)
           }
+        },
+        preConfirm: () => {
+          const input = document.getElementById('swal-input1')
+          return input ? input.value : ''
         }
       })
       if (!code) break // User cancelled
