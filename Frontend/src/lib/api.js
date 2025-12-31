@@ -1,7 +1,9 @@
 // API Configuration
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://hackzen.onrender.com' 
-  : 'http://localhost:3000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || (
+  import.meta.env.MODE === 'production' 
+    ? 'https://hackzen-vrrc.onrender.com' 
+    : 'http://localhost:3000'
+);
 
 export const apiConfig = {
   baseURL: API_BASE_URL,

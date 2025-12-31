@@ -1254,7 +1254,11 @@ const forgotPassword = async (req, res) => {
         pass: process.env.MAIL_PASS
       }
     });
-    const resetUrl = `http://localhost:5173/reset-password?token=${token}`;
+    // Get frontend URL based on environment
+    const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
+      ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app')
+      : 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
     const emailTemplate = `
       <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #f4f6fb; border-radius: 12px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 10px 10px 0 0; text-align: center;">

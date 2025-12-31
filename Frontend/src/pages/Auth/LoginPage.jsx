@@ -11,6 +11,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom"
 import axios from "axios"
 import { useAuth } from "../../context/AuthContext"
 import { getDashboardRouteByRole } from "../../utils/roleBasedRouting"
+import { API_BASE_URL } from "../../lib/api"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -51,7 +52,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:3000/api/users/login", {
+      const res = await axios.post(`${API_BASE_URL}/api/users/login`, {
         email: formData.email,
         password: formData.password,
       });
@@ -82,7 +83,7 @@ export default function LoginPage() {
     setTwoFALoading(true);
 
     try {
-      const res = await axios.post("http://localhost:3000/api/users/2fa/login", {
+      const res = await axios.post(`${API_BASE_URL}/api/users/2fa/login`, {
         userId: twoFAUserId,
         token: twoFACode,
       });
@@ -119,15 +120,15 @@ export default function LoginPage() {
 
   const handleGoogleLogin = () => {
     const googleUrl = redirectTo 
-      ? `http://localhost:3000/api/users/google?redirectTo=${encodeURIComponent(redirectTo)}`
-      : "http://localhost:3000/api/users/google";
+      ? `${API_BASE_URL}/api/users/google?redirectTo=${encodeURIComponent(redirectTo)}`
+      : `${API_BASE_URL}/api/users/google`;
     window.location.href = googleUrl;
   };
 
   const handleGithubLogin = () => {
     const githubUrl = redirectTo 
-      ? `http://localhost:3000/api/users/github?redirectTo=${encodeURIComponent(redirectTo)}`
-      : "http://localhost:3000/api/users/github";
+      ? `${API_BASE_URL}/api/users/github?redirectTo=${encodeURIComponent(redirectTo)}`
+      : `${API_BASE_URL}/api/users/github`;
     window.location.href = githubUrl;
   };
 
