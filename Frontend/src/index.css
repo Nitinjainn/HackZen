@@ -380,3 +380,65 @@ html {
   /* Horizontal rules */
   & hr { @apply border-t border-gray-300 my-8; }
 }
+
+/* SweetAlert2 Verification Popup Styles */
+.verification-popup {
+  border-radius: 16px !important;
+  padding: 2.5rem !important;
+}
+
+.verification-title {
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  margin-bottom: 16px !important;
+  text-align: center !important;
+}
+
+.verification-html {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.verification-input {
+  width: 100% !important;
+  padding: 16px 20px !important;
+  font-size: 18px !important;
+  letter-spacing: 8px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  border: 2px solid #E5E7EB !important;
+  border-radius: 12px !important;
+  margin: 20px 0 !important;
+  transition: all 0.2s ease !important;
+}
+
+.verification-input:focus {
+  outline: none !important;
+  border-color: #4F46E5 !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+}
+
+.verification-confirm-btn {
+  background-color: #4F46E5 !important;
+  border-radius: 8px !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.verification-confirm-btn:hover {
+  background-color: #4338CA !important;
+}
+
+.verification-cancel-btn {
+  background-color: #6B7280 !important;
+  border-radius: 8px !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.verification-cancel-btn:hover {
+  background-color: #4B5563 !important;
+}

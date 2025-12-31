@@ -22,6 +22,7 @@ import {
 import { FilterSidebar, FilterField, FilterToggleButton } from "../../../components/CommonUI/FilterSidebar";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { io } from "socket.io-client";
+import { API_BASE_URL } from "../../../lib/api";
 
 export function ProjectArchive() {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ export function ProjectArchive() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/projects");
+        const res = await fetch(`${API_BASE_URL}/api/projects`);
         const data = await res.json();
         setProjects(data);
 
@@ -76,7 +77,7 @@ export function ProjectArchive() {
   // Real-time updates with socket.io
   useEffect(() => {
     if (!socketRef.current) {
-      socketRef.current = io("http://localhost:3000");
+      socketRef.current = io(API_BASE_URL);
     }
     const socket = socketRef.current;
     socket.on("project-like-update", ({ projectId, likes, likedBy }) => {

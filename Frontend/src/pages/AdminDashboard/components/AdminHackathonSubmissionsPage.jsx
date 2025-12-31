@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Button } from "../../../components/CommonUI/button";
+import { API_BASE_URL } from "../../../lib/api";
 import { Eye, Search, Users, Trophy, FolderCode, Calendar, Filter, Shuffle, ArrowLeft } from "lucide-react";
 import {
   Table,
@@ -45,7 +46,7 @@ export default function AdminHackathonSubmissionsPage({ hackathonId }) {
     const fetchHackathon = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:3000/api/hackathons/${hackathonId}`
+          `${API_BASE_URL}/api/hackathons/${hackathonId}`
         );
         setHackathon(res.data);
       } catch {

@@ -4,6 +4,7 @@ import { CheckCircle, AlertCircle, UserPlus, ArrowRight, XCircle, Mail, Users } 
 import { Button } from "../components/CommonUI/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/CommonUI/card";
 import { HackathonRegistration } from "./mainDashboard/partipantDashboard/components/RegistrationHackathon";
+import { API_BASE_URL } from "../lib/api";
 
 function getUserFromStorage() {
   try {
@@ -48,7 +49,7 @@ export function InviteAccept() {
   const checkInvite = useCallback(async () => {
     setStatus("loading");
     try {
-      const inviteRes = await fetch(`http://localhost:3000/api/team-invites/${inviteId}`);
+      const inviteRes = await fetch(`${API_BASE_URL}/api/team-invites/${inviteId}`);
       if (!inviteRes.ok) {
         setStatus("error");
         setMessage("❌ Invalid or expired invitation link.");
@@ -108,7 +109,7 @@ export function InviteAccept() {
     setStatus("loading");
     try {
       const token = localStorage.getItem("token");
-      const acceptRes = await fetch(`http://localhost:3000/api/team-invites/${inviteId}/accept`, {
+      const acceptRes = await fetch(`${API_BASE_URL}/api/team-invites/${inviteId}/accept`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -131,7 +132,7 @@ export function InviteAccept() {
     setStatus("loading");
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/team-invites/${inviteId}/register`, {
+      const res = await fetch(`${API_BASE_URL}/api/team-invites/${inviteId}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ formData })
@@ -162,7 +163,7 @@ export function InviteAccept() {
     setStatus("loading");
     try {
       const token = localStorage.getItem("token");
-      const rejectRes = await fetch(`http://localhost:3000/api/team-invites/${inviteId}/respond`, {
+      const rejectRes = await fetch(`${API_BASE_URL}/api/team-invites/${inviteId}/respond`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: "declined" })

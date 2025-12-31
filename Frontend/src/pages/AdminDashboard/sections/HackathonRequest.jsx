@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   Card,
   CardContent,
@@ -68,7 +69,7 @@ export function HackathonRequest() {
   useEffect(() => {
     const fetchRequests = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/hackathons/all", {
+        const res = await axios.get(`${API_BASE_URL}/api/hackathons/all`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -92,8 +93,9 @@ export function HackathonRequest() {
   const updateApprovalStatus = async (id, status) => {
     setActionLoading(prev => ({ ...prev, [id]: true }));
     try {
-      await axios.patch(
-        `http://localhost:3000/api/hackathons/${id}/approval`,
+      console.log('[HackathonRequest] Updating approval status:', { id, status });
+      const response = await axios.patch(
+        `${API_BASE_URL}/api/hackathons/${id}/approval`,
         { status },
         {
           headers: {
@@ -101,6 +103,8 @@ export function HackathonRequest() {
           },
         }
       );
+
+      console.log('[HackathonRequest] Approval status updated successfully:', response.data);
 
       setOrganizerRequests((prev) =>
         prev.map((h) => (h._id === id ? { ...h, approvalStatus: status } : h))
@@ -112,10 +116,18 @@ export function HackathonRequest() {
         variant: status === "approved" ? "default" : "destructive",
       });
     } catch (err) {
-      console.error("Failed to update approval status", err);
+      console.error("[HackathonRequest] Failed to update approval status", err);
+      console.error("[HackathonRequest] Error details:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText
+      });
+      
+      const errorMessage = err.response?.data?.message || err.message || "Failed to update approval status";
       toast({
         title: "Error",
-        description: "Failed to update approval status",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

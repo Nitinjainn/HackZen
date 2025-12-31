@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import ChangeRoleDialog from "../../../components/AdminUI/ChangeRoleDialog";
 import axios from "axios";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   Card,
   CardContent,
@@ -47,7 +48,7 @@ export function UsersManagement() {
     const fetchUsers = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:3000/api/users", {
+        const res = await axios.get(`${API_BASE_URL}/api/users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

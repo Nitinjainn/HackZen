@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef, useCallback } f
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { getDashboardRouteByRole } from "../utils/roleBasedRouting";
+import { API_BASE_URL } from "../lib/api";
 
 const AuthContext = createContext();
 
@@ -48,7 +49,7 @@ export const AuthProvider = ({ children }) => {
       if (!token) return;
       
       await axios.post(
-        `http://localhost:3000/api/badges/check${force ? '?force=true' : ''}`,
+        `${API_BASE_URL}/api/badges/check${force ? '?force=true' : ''}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -91,7 +92,7 @@ export const AuthProvider = ({ children }) => {
   // ✅ Logout handler
   const logout = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/api/users/logout", {
+      const res = await axios.get(`${API_BASE_URL}/api/users/logout`, {
         withCredentials: true
       });
       if (res.status === 200) {
@@ -156,7 +157,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = localStorage.getItem("token");
       if (!token) return;
-      const res = await axios.get("http://localhost:3000/api/users/me", {
+      const res = await axios.get(`${API_BASE_URL}/api/users/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.data) {

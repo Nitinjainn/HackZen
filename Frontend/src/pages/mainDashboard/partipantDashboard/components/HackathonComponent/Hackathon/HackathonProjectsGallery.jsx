@@ -7,6 +7,7 @@ import { Skeleton } from "../../../../../../components/DashboardUI/skeleton";
 import { ProjectCard } from "../../../../../../components/CommonUI/ProjectCard";
 import { Rocket, Trophy } from "lucide-react";
 import { Badge } from "../../../../../../components/CommonUI/badge";
+import { API_BASE_URL } from "../../../../../../lib/api";
 
 // Empty State Component
 const EmptyProjectsState = () => (
@@ -39,7 +40,7 @@ export default function HackathonProjectsGallery({ hackathonId, onProjectClick, 
 
         // Fetch all submitted projects for the hackathon
         const projectsRes = await axios.get(
-          `http://localhost:3000/api/projects/hackathon/${hackathonId}`,
+          `${API_BASE_URL}/api/projects/hackathon/${hackathonId}`,
           { headers }
         );
         const submittedProjects = (projectsRes.data || []).filter(p => p.status === 'submitted');
@@ -104,7 +105,7 @@ export default function HackathonProjectsGallery({ hackathonId, onProjectClick, 
       if (!token) return;
       
       try {
-        const userRes = await axios.get("http://localhost:3000/api/users/me", {
+        const userRes = await axios.get(`${API_BASE_URL}/api/users/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(userRes.data);

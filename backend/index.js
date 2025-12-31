@@ -1,7 +1,7 @@
 
-console.log = function () {};
-console.info = function () {};
-
+// Temporarily enable console.log for debugging
+// console.log = function () {};
+// console.info = function () {};
 
 require("dotenv").config();
 
@@ -27,9 +27,23 @@ const sponsorProposalRoutes = require('./routes/sponsorProposalRoutes');
 
 const app = express();
 
-// ✅ CORS setup
+// ✅ CORS setup - Support both localhost and production
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://hackzen.vercel.app"
+];
+
 app.use(cors({
-  origin: "http://localhost:5173", // your frontend
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all origins for now (can be restricted later)
+    }
+  },
   credentials: true,
 }));
 
@@ -38,6 +52,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // ✅ Session middleware (MongoDB session store)
+const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER;
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -45,14 +60,63 @@ app.use(session({
   store: MongoStore.create({ mongoUrl: process.env.MONGO_URL }),
   cookie: {
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    sameSite: "lax", // secure if same origin
-    secure: false,   // set to true in production (with HTTPS)
+    sameSite: isProduction ? "none" : "lax", // none for cross-site in production
+    secure: isProduction,   // true in production (HTTPS required)
+    httpOnly: true,
   },
 }));
 
 // ✅ Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
+
+app.get("/", (req, res) => {
+  res.json({
+    message: "HackZen API Server is running!",
+    status: "ok",
+    version: "1.0.0",
+    endpoints: {
+      api: "/api",
+      health: "/api/health",
+      testSendGrid: "/api/test-sendgrid"
+    }
+  });
+});
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || "development"
+  });
+});
+
+// Diagnostic endpoint to check SendGrid configuration
+app.get("/api/test-sendgrid", (req, res) => {
+  console.log('🔍 /api/test-sendgrid endpoint called');
+  const hasApiKey = !!process.env.SENDGRID_API_KEY;
+  const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+  const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+  
+  console.log('🔍 SendGrid config check:', {
+    hasApiKey,
+    fromEmail,
+    fromName,
+    apiKeyLength: process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.length : 0
+  });
+  
+  res.json({
+    sendgridConfigured: hasApiKey,
+    apiKeySet: hasApiKey,
+    fromEmail: fromEmail,
+    fromName: fromName,
+    apiKeyLength: process.env.SENDGRID_API_KEY ? process.env.SENDGRID_API_KEY.length : 0,
+    message: hasApiKey 
+      ? 'SendGrid is configured correctly' 
+      : 'SENDGRID_API_KEY is not set in environment variables'
+  });
+});
 
 // ✅ API Routes
 app.use("/api/hackathons", require("./routes/hackathonRoutes"));
@@ -85,7 +149,24 @@ app.use("/api/users", require("./routes/userRoutes"));
 //certificatePage
 app.use("/api/certificate-pages", require("./routes/certificatePageRoutes"));
 
-// Add this at the end, after all routes:
+// 404 handler for unmatched routes
+app.use((req, res, next) => {
+  console.log('🔍 404 - Route not found:', req.method, req.path);
+  res.status(404).json({ 
+    message: 'Route not found',
+    method: req.method,
+    path: req.path,
+    availableEndpoints: [
+      '/api/health',
+      '/api/test-sendgrid',
+      '/api/users/register',
+      '/api/hackathons',
+      '/api/teams'
+    ]
+  });
+});
+
+// Error handler
 app.use((err, req, res, next) => {
   const errorString = typeof err === 'object' ? util.inspect(err, { depth: 5 }) : String(err);
   console.error('GLOBAL ERROR:', errorString);
@@ -96,7 +177,14 @@ app.use((err, req, res, next) => {
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Allow all origins for now
+      }
+    },
     credentials: true,
   },
 });
@@ -142,6 +230,9 @@ mongoose.connect(process.env.MONGO_URL)
     
     server.listen(PORT, () => {
       console.log(`🚀 Server + Socket.IO running at http://localhost:${PORT}`);
+      console.log(`📧 SendGrid test endpoint: http://localhost:${PORT}/api/test-sendgrid`);
+      console.log(`🔍 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`📝 SendGrid API Key configured: ${process.env.SENDGRID_API_KEY ? '✅ YES' : '❌ NO'}`);
     });
   })
   .catch((err) => {

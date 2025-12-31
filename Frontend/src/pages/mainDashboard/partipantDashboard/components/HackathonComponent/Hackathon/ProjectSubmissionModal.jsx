@@ -4,6 +4,7 @@ import { Button } from "../../../../../../components/CommonUI/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../../../components/CommonUI/select";
 import { useToast } from '../../../../../../hooks/use-toast';
 import { useNavigate, useLocation } from "react-router-dom";
+import { API_BASE_URL } from "../../../../../../lib/api";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -47,11 +48,14 @@ export default function ProjectSubmissionModal({ open, onOpenChange, hackathon, 
   const fetchProjects = async (autoSelectLatest = false) => {
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/api/projects/mine", {
+      const res = await fetch(`${API_BASE_URL}/api/projects/mine`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
-      setProjects(data || []);
+      setProjects(Array.isArray(data) ? data : []);
       const params = new URLSearchParams(location.search);
       const newProjectId = params.get("newProjectId");
       if (newProjectId && data.some(p => p._id === newProjectId)) {
@@ -127,7 +131,7 @@ export default function ProjectSubmissionModal({ open, onOpenChange, hackathon, 
   const fetchTeam = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/teams/hackathon/${hackathon._id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/teams/hackathon/${hackathon._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -208,7 +212,7 @@ export default function ProjectSubmissionModal({ open, onOpenChange, hackathon, 
       });
       if (isEditMode && editingId) {
         // Edit existing submission
-        const res = await fetch(`http://localhost:3000/api/submission-form/submission/${editingId}`, {
+        const res = await fetch(`${API_BASE_URL}/api/submission-form/submission/${editingId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -248,7 +252,7 @@ export default function ProjectSubmissionModal({ open, onOpenChange, hackathon, 
         }
         // If the project is not linked to this hackathon, update it first
         if (!project.hackathon || (project.hackathon._id !== hackathon._id && project.hackathon !== hackathon._id)) {
-          const updateRes = await fetch(`http://localhost:3000/api/projects/${selectedProject}/assign-hackathon`, {
+          const updateRes = await fetch(`${API_BASE_URL}/api/projects/${selectedProject}/assign-hackathon`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -268,7 +272,7 @@ export default function ProjectSubmissionModal({ open, onOpenChange, hackathon, 
           }
         }
         // Now submit the project
-        const res = await fetch("http://localhost:3000/api/submission-form/submit", {
+        const res = await fetch(`${API_BASE_URL}/api/submission-form/submit`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -351,7 +355,7 @@ export default function ProjectSubmissionModal({ open, onOpenChange, hackathon, 
     if (editingId) {
       try {
         const token = localStorage.getItem('token');
-        await fetch(`http://localhost:3000/api/submission-form/submission/${editingId}`, {
+        await fetch(`${API_BASE_URL}/api/submission-form/submission/${editingId}`, {
           method: 'DELETE',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -508,7 +512,7 @@ export default function ProjectSubmissionModal({ open, onOpenChange, hackathon, 
                     setUpdatingTeamName(true);
                     try {
                       const token = localStorage.getItem("token");
-                      await fetch(`http://localhost:3000/api/teams/${team._id}/name`, {
+                      await fetch(`${API_BASE_URL}/api/teams/${team._id}/name`, {
                         method: "PUT",
                         headers: {
                           "Content-Type": "application/json",

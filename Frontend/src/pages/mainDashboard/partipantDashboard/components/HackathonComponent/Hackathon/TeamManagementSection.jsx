@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../../../../../../lib/api";
 import { Button } from "../../../../../../components/CommonUI/button";
 import {
   Card,
@@ -100,7 +101,7 @@ export default function TeamManagementSection({
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `http://localhost:3000/api/teams/join/${joinCode}`,
+        `${API_BASE_URL}/api/teams/join/${joinCode}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setPendingTeam(res.data.team);
@@ -119,7 +120,7 @@ export default function TeamManagementSection({
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "http://localhost:3000/api/registration",
+        `${API_BASE_URL}/api/registration`,
         {
           hackathonId: hackathon._id,
           formData,
@@ -141,7 +142,7 @@ export default function TeamManagementSection({
   const handleDeleteTeam = async (teamId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3000/api/teams/${teamId}`,
+      await axios.delete(`${API_BASE_URL}/api/teams/${teamId}`,
         { headers: { Authorization: `Bearer ${token}` } });
       toast({ title: "Deleted", description: "Team has been deleted" });
       await fetchUserTeams();
@@ -161,7 +162,7 @@ export default function TeamManagementSection({
   const handleLeaveTeam = async (teamId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3000/api/teams/${teamId}/leave`, {
+      await axios.delete(`${API_BASE_URL}/api/teams/${teamId}/leave`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast({ title: "Left Team", description: "You have left the team." });
@@ -176,7 +177,7 @@ export default function TeamManagementSection({
   const handleRemoveMember = async (teamId, memberId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3000/api/teams/${teamId}/members/${memberId}`, {
+      await axios.delete(`${API_BASE_URL}/api/teams/${teamId}/members/${memberId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast({ title: "Removed", description: "Member removed from team." });
@@ -191,7 +192,7 @@ export default function TeamManagementSection({
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `http://localhost:3000/api/teams/hackathon/${hackathon._id}`,
+        `${API_BASE_URL}/api/teams/hackathon/${hackathon._id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log("Fetched teams:", res.data);
@@ -209,7 +210,7 @@ export default function TeamManagementSection({
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `http://localhost:3000/api/team-invites/hackathon/${hackathon._id}`,
+        `${API_BASE_URL}/api/team-invites/hackathon/${hackathon._id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log("Fetched team invites:", res.data);
@@ -223,7 +224,7 @@ export default function TeamManagementSection({
     try {
       const token = localStorage.getItem("token");
       const res = await axios.get(
-        `http://localhost:3000/api/teams/join/${teamCode}`,
+        `${API_BASE_URL}/api/teams/join/${teamCode}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           params: { projectId: hackathon._id },
@@ -248,7 +249,7 @@ export default function TeamManagementSection({
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:3000/api/teams/${teamId}/description`,
+        `${API_BASE_URL}/api/teams/${teamId}/description`,
         { description: newDescription },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -670,7 +671,7 @@ export default function TeamManagementSection({
           try {
             const token = localStorage.getItem("token");
             await axios.put(
-              `http://localhost:3000/api/teams/${editingTeamName._id}/name`,
+              `${API_BASE_URL}/api/teams/${editingTeamName._id}/name`,
               { name: newName },
               { headers: { Authorization: `Bearer ${token}` } }
             );

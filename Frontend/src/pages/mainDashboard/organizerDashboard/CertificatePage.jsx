@@ -7,6 +7,7 @@ import { Badge } from "../../../components/CommonUI/badge";
 import { Plus, Upload, Info, Eye, Edit, Trash2 } from "lucide-react";
 import CertificateEditor from "./components/CertificateEditor";
 import toast from "react-hot-toast";
+import { API_BASE_URL } from "../../../lib/api";
 
 function replacePlaceholders(content, sampleData) {
   return content
@@ -26,7 +27,7 @@ export default function CertificatesPage() {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    fetch("http://localhost:3000/api/certificate-pages", {
+    fetch(`${API_BASE_URL}/api/certificate-pages`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -50,7 +51,7 @@ export default function CertificatesPage() {
     if (!window.confirm("Are you sure you want to delete this certificate?")) return;
     const token = localStorage.getItem("token");
     try {
-      await fetch(`http://localhost:3000/api/certificate-pages/${id}`, {
+      await fetch(`${API_BASE_URL}/api/certificate-pages/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });

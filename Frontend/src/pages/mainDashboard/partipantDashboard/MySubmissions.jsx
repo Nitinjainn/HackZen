@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   FileText,
   Award,
@@ -35,7 +36,7 @@ export function MySubmissions() {
         const userId = user?._id;
         if (!userId) return setSubmissions([]);
         const res = await axios.get(
-          `http://localhost:3000/api/submission-form/submissions?userId=${userId}`,
+          `${API_BASE_URL}/api/submission-form/submissions?userId=${userId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setSubmissions(res.data.submissions || []);
@@ -52,7 +53,7 @@ export function MySubmissions() {
   // Real-time updates with socket.io for like/view counts
   useEffect(() => {
     if (!socketRef.current) {
-      socketRef.current = io("http://localhost:3000");
+      socketRef.current = io(`${API_BASE_URL}`);
     }
     const socket = socketRef.current;
     socket.on("project-like-update", ({ projectId, likes, likedBy }) => {

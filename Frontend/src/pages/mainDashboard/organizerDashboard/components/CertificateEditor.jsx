@@ -2,6 +2,7 @@ import React, { useRef, useState, useCallback, useEffect } from "react"
 import { ArrowLeft, Plus, Upload, Save, Eye, Trash2, Type } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "../../../../components/CommonUI/card" 
 import { toast } from "react-hot-toast";
+import { API_BASE_URL } from "../../../../lib/api";
 
 function getAverageColor(img, x, y, w, h) {
   const canvas = document.createElement("canvas")
@@ -468,8 +469,8 @@ export default function CertificateEditor({ onBack, template, onDelete }) {
       };
 
       const url = template?._id
-        ? `http://localhost:3000/api/certificate-pages/${template._id}`
-        : "http://localhost:3000/api/certificate-pages";
+        ? `${API_BASE_URL}/api/certificate-pages/${template._id}`
+        : `${API_BASE_URL}/api/certificate-pages`;
       
       const method = template?._id ? "PUT" : "POST";
 

@@ -3,13 +3,14 @@ import { useState } from "react";
 import CreateHackathon from "../Create-hackathon";
 import { X } from "lucide-react";
 import toast from "react-hot-toast";
+import { API_BASE_URL } from "../../../../lib/api";
 
 export default function HackathonEditModal({ hackathon, onClose, onUpdated }) {
   // Handler for updating hackathon
   const handleUpdate = async (formData) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/hackathons/${hackathon._id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/hackathons/${hackathon._id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

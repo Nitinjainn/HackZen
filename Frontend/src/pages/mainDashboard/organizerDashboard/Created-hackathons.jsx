@@ -16,6 +16,7 @@ import {
   Clock,
   MapPin,
 } from "lucide-react";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   Card,
   CardContent,
@@ -71,7 +72,7 @@ export function CreatedHackathons({ onCreateNew }) {
     const fetchHackathons = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3000/api/hackathons/my", {
+        const res = await fetch(`${API_BASE_URL}/api/hackathons/my`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -95,7 +96,7 @@ export function CreatedHackathons({ onCreateNew }) {
       await Promise.all(
         hackathons.map(async (h) => {
           try {
-            const res = await fetch(`http://localhost:3000/api/sponsor-proposals/${h._id}`);
+            const res = await fetch(`${API_BASE_URL}/api/sponsor-proposals/${h._id}`);
             const data = await res.json();
             counts[h._id] = Array.isArray(data) ? data.filter(p => p.status === 'pending').length : 0;
           } catch {
@@ -149,7 +150,7 @@ export function CreatedHackathons({ onCreateNew }) {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(
-        `http://localhost:3000/api/hackathons/${hackathon._id}`,
+        `${API_BASE_URL}/api/hackathons/${hackathon._id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -175,7 +176,7 @@ export function CreatedHackathons({ onCreateNew }) {
     setLoadingProposals(true);
     setSelectedHackathonId(hackathonId);
     try {
-      const res = await fetch(`http://localhost:3000/api/sponsor-proposals/${hackathonId}`);
+      const res = await fetch(`${API_BASE_URL}/api/sponsor-proposals/${hackathonId}`);
       const data = await res.json();
       setSponsorProposals(data);
       setShowSponsorModal(true);
@@ -189,7 +190,7 @@ export function CreatedHackathons({ onCreateNew }) {
 
   // Approve/Reject proposal
   const updateProposalStatus = async (proposalId, status) => {
-    await fetch(`http://localhost:3000/api/sponsor-proposals/${proposalId}`, {
+    await fetch(`${API_BASE_URL}/api/sponsor-proposals/${proposalId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status }),

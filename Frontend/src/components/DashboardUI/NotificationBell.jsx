@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { AnimatedList } from "../Magic UI/AnimatedList";
 import { useToast } from '../../hooks/use-toast';
 import useDropdownTimeout from '../../hooks/useDropdownTimeout';
-import { buildApiUrl } from '../../lib/api';
+import { buildApiUrl, API_BASE_URL } from '../../lib/api';
 
 const READ_OPTIONS = [
   { value: "all", label: "All" },
@@ -111,7 +111,7 @@ function NotificationBell() {
       try {
         const token = localStorage.getItem('token');
         const inviteId = notification.link.split('/').pop();
-        const res = await fetch(`http://localhost:3000/api/team-invites/${inviteId}/accept`, {
+        const res = await fetch(`${API_BASE_URL}/api/team-invites/${inviteId}/accept`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -131,7 +131,7 @@ function NotificationBell() {
       try {
         const token = localStorage.getItem('token');
         const inviteId = notification.link.split('/').pop();
-        const res = await fetch(`http://localhost:3000/api/team-invites/${inviteId}/respond`, {
+        const res = await fetch(`${API_BASE_URL}/api/team-invites/${inviteId}/respond`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

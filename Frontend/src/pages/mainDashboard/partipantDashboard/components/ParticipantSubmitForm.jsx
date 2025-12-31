@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { API_BASE_URL } from "../../../../lib/api";
 import {
   Card,
   CardContent,
@@ -87,7 +88,7 @@ export default function ProjectSubmissionForm({
       try {
         console.log('fetchCustomForm: hackathon =', hackathon);
         const res = await axios.get(
-          `http://localhost:3000/api/hackathons/${hackathon._id || hackathon.id}`
+          `${API_BASE_URL}/api/hackathons/${hackathon._id || hackathon.id}`
         );
         const form = res.data.customForm || {};
         setOrganizerQuestions(form.questions || []);
@@ -106,7 +107,7 @@ export default function ProjectSubmissionForm({
         const token = localStorage.getItem("token");
         const hackathonId = hackathon._id || hackathon.id;
         const res = await axios.get(
-          `http://localhost:3000/api/submission-form/submissions?hackathonId=${hackathonId}&userId=${userId}`,
+          `${API_BASE_URL}/api/submission-form/submissions?hackathonId=${hackathonId}&userId=${userId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const submissions = res.data.submissions || [];
@@ -137,7 +138,7 @@ export default function ProjectSubmissionForm({
     if (!window.confirm('Are you sure you want to delete this submission?')) return;
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:3000/api/submission-form/submission/${submissionId}`, {
+      await axios.delete(`${API_BASE_URL}/api/submission-form/submission/${submissionId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSubmissions(submissions.filter(s => s._id !== submissionId));
@@ -172,7 +173,7 @@ export default function ProjectSubmissionForm({
         ([id, answer]) => ({ questionId: id, answer })
       );
       await axios.put(
-        `http://localhost:3000/api/submission-form/submission/${editingSubmission._id}`,
+        `${API_BASE_URL}/api/submission-form/submission/${editingSubmission._id}`,
         {
           customAnswers: answersArray,
           problemStatement: selectedProblem,
@@ -186,7 +187,7 @@ export default function ProjectSubmissionForm({
       // Refresh submissions
       const hackathonId = hackathon._id || hackathon.id;
       const res = await axios.get(
-        `http://localhost:3000/api/submission-form/submissions?hackathonId=${hackathonId}&userId=${userId}`,
+        `${API_BASE_URL}/api/submission-form/submissions?hackathonId=${hackathonId}&userId=${userId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setSubmissions(res.data.submissions || []);
@@ -222,7 +223,7 @@ export default function ProjectSubmissionForm({
       try {
         const token = localStorage.getItem("token");
         const hackathonId = hackathon._id || hackathon.id;
-        const res = await fetch(`http://localhost:3000/api/teams/hackathon/${hackathonId}`, {
+        const res = await fetch(`${API_BASE_URL}/api/teams/hackathon/${hackathonId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const teams = await res.json();
@@ -320,7 +321,7 @@ export default function ProjectSubmissionForm({
     try {
       console.log('🚀 Submitting project with payload:', payload);
       const response = await axios.post(
-        "http://localhost:3000/api/submission-form/submit",
+        `${API_BASE_URL}/api/submission-form/submit`,
         payload,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -398,7 +399,7 @@ export default function ProjectSubmissionForm({
       const token = localStorage.getItem("token");
       const formData = new FormData();
       formData.append("ppt", pptFile);
-      const uploadRes = await fetch("http://localhost:3000/api/uploads/ppt", {
+      const uploadRes = await fetch(`${API_BASE_URL}/api/uploads/ppt`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -406,7 +407,7 @@ export default function ProjectSubmissionForm({
       const uploadData = await uploadRes.json();
       if (!uploadRes.ok) throw new Error(uploadData.message || "Upload failed");
       // 2. Submit the PPT submission
-      const submissionRes = await fetch("http://localhost:3000/api/submission-form/ppt", {
+      const submissionRes = await fetch(`${API_BASE_URL}/api/submission-form/ppt`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -446,7 +447,7 @@ export default function ProjectSubmissionForm({
     setPptLinkSubmitting(true);
     try {
       const token = localStorage.getItem("token");
-      const submissionRes = await fetch("http://localhost:3000/api/submission-form/ppt", {
+      const submissionRes = await fetch(`${API_BASE_URL}/api/submission-form/ppt`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1048,7 +1049,7 @@ export default function ProjectSubmissionForm({
                                   try {
                                     const token = localStorage.getItem("token");
                                     const hackathonId = hackathon._id || hackathon.id;
-                                    const res = await fetch(`http://localhost:3000/api/teams/hackathon/${hackathonId}`, {
+                                    const res = await fetch(`${API_BASE_URL}/api/teams/hackathon/${hackathonId}`, {
                                       headers: { Authorization: `Bearer ${token}` },
                                     });
                                     const teams = await res.json();

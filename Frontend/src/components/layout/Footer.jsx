@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Instagram, Linkedin, Github, Dribbble, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
+import { API_BASE_URL } from "../../lib/api";
 
 function Footer() {
   const [email, setEmail] = useState("");
@@ -13,7 +14,7 @@ function Footer() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/api/newsletter/subscribe", {
+      const res = await fetch(`${API_BASE_URL}/api/newsletter/subscribe`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

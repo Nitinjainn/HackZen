@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../DashboardUI/avatar";
 import { useState } from "react";
 import { useToast } from "../../hooks/use-toast";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../lib/api";
 
 export function ProjectCard({ project, onClick, user, judgeScores = [] }) {
   const { toast } = useToast ? useToast() : { toast: () => {} };
@@ -35,7 +36,7 @@ export function ProjectCard({ project, onClick, user, judgeScores = [] }) {
     }
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/projects/${project._id}/like`, {
+      const res = await fetch(`${API_BASE_URL}/api/projects/${project._id}/like`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -60,13 +61,13 @@ export function ProjectCard({ project, onClick, user, judgeScores = [] }) {
       try {
         const token = localStorage.getItem("token");
         if (project.type && project.type.toLowerCase() === "ppt") {
-          await fetch(`http://localhost:3000/api/submission-form/${project._id}/view`, {
+          await fetch(`${API_BASE_URL}/api/submission-form/${project._id}/view`, {
             method: "PATCH",
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           });
           setViewCount((prev) => prev + 1); // Optimistic update
         } else {
-          await fetch(`http://localhost:3000/api/projects/${project._id}/view`, {
+          await fetch(`${API_BASE_URL}/api/projects/${project._id}/view`, {
             method: "PATCH",
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           });

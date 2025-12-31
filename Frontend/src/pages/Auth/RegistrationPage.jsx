@@ -28,6 +28,7 @@ import {
 import { Link, useNavigate } from "react-router-dom"
 import axios from "axios"
 import { useAuth } from "../../context/AuthContext"
+import { API_BASE_URL } from "../../lib/api"
 import Swal from "sweetalert2"
 import withReactContent from "sweetalert2-react-content"
 import RoleSelection from "./components/RoleSelection"
@@ -579,7 +580,7 @@ export default function SignupPage() {
           profileCompleted: true
         };
         await axios.put(
-          `http://localhost:3000/api/users/${user._id}/complete-profile`,
+          `${API_BASE_URL}/api/users/${user._id}/complete-profile`,
           profileFields,
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
@@ -599,24 +600,72 @@ export default function SignupPage() {
         return;
       }
       // 1. Register user (name, email, password)
+      console.log('[RegistrationPage] Starting registration...', { 
+        email: formData.email, 
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        role: selectedRole 
+      });
+      
       const name = `${formData.firstName} ${formData.lastName}`.trim()
-      const res = await axios.post("http://localhost:3000/api/users/register", {
+      const res = await axios.post(`${API_BASE_URL}/api/users/register`, {
         name,
         email: formData.email,
         password: formData.password,
         role: selectedRole === 'organizer' ? 'organizer' : selectedRole
+      }, {
+        timeout: 30000, // 30 second timeout for email sending
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
+      
+      console.log('[RegistrationPage] Registration request successful:', res.data);
+      
+      // Only proceed if we got a success response
+      if (res.status === 200 && res.data.message) {
       setEmailForCode(formData.email)
       setSuccessMsg(res.data.message || "Verification code sent to your email.")
       // Show SweetAlert2 popup for code entry
       await showVerificationPopup()
+      } else {
+        throw new Error(res.data.message || "Registration failed. Please try again.")
+      }
     } catch (err) {
-      // If the error is 'Verification code already sent', show the popup anyway
-      const msg = err.response?.data?.message || "Registration failed. Please try again."
+      console.error('[RegistrationPage] Registration error:', err);
+      console.error('[RegistrationPage] Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        config: {
+          url: err.config?.url,
+          method: err.config?.method
+        }
+      });
+      
+      // Extract error message
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || "Registration failed. Please try again."
+      const status = err.response?.status;
+      
+      console.log('[RegistrationPage] Full error response:', {
+        status,
+        message: msg,
+        data: err.response?.data,
+        config: err.config
+      });
+      
       setErrorMsg(msg)
-      if (msg.includes("Verification code already sent")) {
+      
+      // Only show popup if code was actually sent (status 200 or specific message)
+      // Don't show popup for email service errors (500, 400, etc.)
+      if (status === 200 || (msg && msg.toLowerCase().includes("verification code already sent"))) {
+        console.log('[RegistrationPage] Code already sent or request succeeded, showing popup');
         setEmailForCode(formData.email)
         await showVerificationPopup()
+      } else {
+        // For other errors, don't show popup - email wasn't sent
+        console.log('[RegistrationPage] Registration failed, email not sent. Error:', msg);
+        // Error message already set above
       }
     } finally {
       setLoading(false)
@@ -630,9 +679,24 @@ export default function SignupPage() {
     while (!verified) {
       const { value: code } = await MySwal.fire({
         title: "Enter Verification Code",
-        input: "text",
-        inputLabel: "A 6-digit code was sent to your email.",
-        inputPlaceholder: "000000",
+        html: `
+          <div style="padding: 0 12px; margin-bottom: 24px;">
+            <p style="text-align: center; color: #6B7280; font-size: 15px; line-height: 1.6; margin: 0; padding: 0;">
+              A 6-digit verification code has been sent to your email address. Please check your inbox or spam folder.
+            </p>
+          </div>
+          <input 
+            type="text" 
+            id="swal-input1" 
+            class="swal2-input verification-input" 
+            placeholder="000000" 
+            maxlength="6" 
+            style="text-align: center; font-size: 20px; letter-spacing: 10px; font-weight: 600; width: 100%; padding: 16px 20px; border: 2px solid #E5E7EB; border-radius: 12px; margin: 0 auto 24px; display: block;"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+          />
+        `,
         inputAttributes: {
           maxlength: 6,
           autocapitalize: "off",
@@ -641,25 +705,60 @@ export default function SignupPage() {
         showCancelButton: true,
         confirmButtonText: "Verify & Create Account",
         cancelButtonText: "Cancel",
+        confirmButtonColor: "#4F46E5",
+        cancelButtonColor: "#6B7280",
+        width: "450px",
+        padding: "2.5rem",
+        customClass: {
+          popup: "verification-popup",
+          title: "verification-title",
+          htmlContainer: "verification-html",
+          input: "verification-input",
+          confirmButton: "verification-confirm-btn",
+          cancelButton: "verification-cancel-btn"
+        },
         inputValidator: (value) => {
           if (!value || value.length !== 6) {
             return "Please enter the 6-digit code."
           }
         },
         didOpen: () => {
-          if (error) {
+          const input = document.getElementById('swal-input1')
+          if (input) {
+            input.focus()
+            input.addEventListener('input', (e) => {
+              e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6)
+            })
+          }
+          if (error && MySwal && typeof MySwal.showValidationMessage === 'function') {
             MySwal.showValidationMessage(error)
           }
+        },
+        preConfirm: () => {
+          const input = document.getElementById('swal-input1')
+          return input ? input.value : ''
         }
       })
       if (!code) break // User cancelled
       setLoading(true)
       try {
+        console.log('[RegistrationPage] Attempting to verify code:', code);
         await handleVerifyCode(code)
         verified = true
+        console.log('[RegistrationPage] Verification successful');
       } catch (err) {
-        error = err?.message || "Verification failed. Please try again."
+        console.error('[RegistrationPage] Verification failed in popup:', err);
+        error = err?.response?.data?.message || err?.message || "Verification failed. Please try again."
+        if (MySwal && typeof MySwal.showValidationMessage === 'function') {
         MySwal.showValidationMessage(error)
+        } else {
+          // Fallback if showValidationMessage is not available
+          MySwal.fire({
+            icon: 'error',
+            title: 'Verification Failed',
+            text: error
+          })
+        }
       } finally {
         setLoading(false)
       }
@@ -672,14 +771,25 @@ export default function SignupPage() {
     setSuccessMsg("")
     // setLoading(true) // handled in showVerificationPopup
     try {
+      const email = emailForCode?.trim() || formData.email?.trim();
+      const verificationCode = String(code).trim().padStart(6, "0");
+      
+      console.log('[RegistrationPage] Verifying code...', { email, code: verificationCode });
+      
       // 2. Verify code
-      const res = await axios.post("http://localhost:3000/api/users/verify-registration", {
-        email: emailForCode?.trim() || formData.email?.trim(),
-        code: String(code).trim().padStart(6, "0")
+      const res = await axios.post(`${API_BASE_URL}/api/users/verify-registration`, {
+        email,
+        code: verificationCode
       })
+      
+      console.log('[RegistrationPage] Code verified successfully:', res.data);
+      
       // 3. Complete profile
       const user = res.data.user
       const token = res.data.token
+      
+      console.log('[RegistrationPage] Completing profile...');
+      
       // Prepare profile fields
       const profileFields = {
         phone: formData.phone,
@@ -710,16 +820,30 @@ export default function SignupPage() {
         // Add any other fields as needed
         profileCompleted: true
       }
+      
       await axios.put(
-        `http://localhost:3000/api/users/${user._id}/complete-profile`,
+        `${API_BASE_URL}/api/users/${user._id}/complete-profile`,
         profileFields,
         { headers: { Authorization: `Bearer ${token}` } }
       )
+      
+      console.log('[RegistrationPage] Profile completed successfully');
+      
       // 4. Update AuthContext and redirect
       await login({ ...user, profileCompleted: true }, token)
+      console.log('[RegistrationPage] User logged in, redirecting to dashboard');
       navigate("/dashboard")
     } catch (err) {
-      throw new Error(err.response?.data?.message || "Verification failed. Please try again.")
+      console.error('[RegistrationPage] Verification error:', err);
+      console.error('[RegistrationPage] Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText
+      });
+      
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || "Verification failed. Please try again.";
+      throw new Error(errorMessage);
     }
   }
 

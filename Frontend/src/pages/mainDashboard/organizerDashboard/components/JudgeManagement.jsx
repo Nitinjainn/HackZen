@@ -5,6 +5,7 @@ import {
   CardContent,
 } from "../../../../components/CommonUI/card";
 import { Button } from "../../../../components/CommonUI/button";
+import { API_BASE_URL } from "../../../../lib/api";
 import { Badge } from "../../../../components/CommonUI/badge";
 import { Input } from "../../../../components/CommonUI/input";
 import { Label } from "../../../../components/CommonUI/label";
@@ -130,7 +131,7 @@ export default function JudgeManagement({ hackathonId, hideHackathonSelector = f
 
   useEffect(() => {
     if (selectedHackathonId) {
-      fetch(`http://localhost:3000/api/sponsor-proposals/${selectedHackathonId}`)
+      fetch(`${API_BASE_URL}/api/sponsor-proposals/${selectedHackathonId}`)
         .then(res => res.json())
         .then(data => setSponsoredProposals(data.filter(p => p.status === "approved")));
     }
@@ -159,7 +160,7 @@ export default function JudgeManagement({ hackathonId, hideHackathonSelector = f
     const fetchTeams = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:3000/api/teams/hackathon/${selectedHackathonId}/all`, {
+        const res = await fetch(`${API_BASE_URL}/api/teams/hackathon/${selectedHackathonId}/all`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -176,7 +177,7 @@ export default function JudgeManagement({ hackathonId, hideHackathonSelector = f
       if (!selectedHackathonId) return;
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:3000/api/submission-form/admin/hackathon/${selectedHackathonId}`,
+        const res = await fetch(`${API_BASE_URL}/api/submission-form/admin/hackathon/${selectedHackathonId}`,
           { headers: { Authorization: `Bearer ${token}` } });
         const data = await res.json();
         setLocalSubmissions(Array.isArray(data.submissions) ? data.submissions : []);
@@ -194,7 +195,7 @@ export default function JudgeManagement({ hackathonId, hideHackathonSelector = f
   const fetchHackathons = async () => {
     try {
       const response = await fetch(
-        "http://localhost:3000/api/hackathons/my",
+        `${API_BASE_URL}/api/hackathons/my`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -219,7 +220,7 @@ export default function JudgeManagement({ hackathonId, hideHackathonSelector = f
       console.log("Fetching judge assignments for hackathon:", selectedHackathonId);
       
       const response = await fetch(
-        `http://localhost:3000/api/judge-management/hackathons/${selectedHackathonId}/judge-assignments`,
+        `${API_BASE_URL}/api/judge-management/hackathons/${selectedHackathonId}/judge-assignments`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -261,7 +262,7 @@ export default function JudgeManagement({ hackathonId, hideHackathonSelector = f
         payload.sponsorProposalId = newProblemStatement.sponsorProposalId;
       }
       const response = await fetch(
-        `http://localhost:3000/api/judge-management/hackathons/${selectedHackathonId}/problem-statements`,
+        `${API_BASE_URL}/api/judge-management/hackathons/${selectedHackathonId}/problem-statements`,
         {
           method: "POST",
           headers: {
@@ -287,7 +288,7 @@ export default function JudgeManagement({ hackathonId, hideHackathonSelector = f
   const assignJudge = async () => {
     try {
       const response = await fetch(
-        `http://localhost:3000/api/judge-management/hackathons/${selectedHackathonId}/assign-judges`,
+        `${API_BASE_URL}/api/judge-management/hackathons/${selectedHackathonId}/assign-judges`,
         {
           method: "POST",
           headers: {
@@ -328,7 +329,7 @@ export default function JudgeManagement({ hackathonId, hideHackathonSelector = f
   const removeJudgeAssignment = async (assignmentId) => {
     try {
       const response = await fetch(
-        `http://localhost:3000/api/judge-management/judge-assignments/${assignmentId}`,
+        `${API_BASE_URL}/api/judge-management/judge-assignments/${assignmentId}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${token}` },
@@ -347,7 +348,7 @@ export default function JudgeManagement({ hackathonId, hideHackathonSelector = f
     setAssignmentModeLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/judge-management/hackathons/${selectedHackathonId}/${type}/${index}/assignment-mode`, {
+      const res = await fetch(`${API_BASE_URL}/api/judge-management/hackathons/${selectedHackathonId}/${type}/${index}/assignment-mode`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ mode }),

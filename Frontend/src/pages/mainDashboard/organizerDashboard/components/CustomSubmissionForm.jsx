@@ -3,6 +3,7 @@
 import { useState } from "react";
 import axios from "axios";
 import { Button } from "../../../../components/CommonUI/button";
+import { API_BASE_URL } from "../../../../lib/api";
 import { Input } from "../../../../components/CommonUI/input";
 import { Label } from "../../../../components/CommonUI/label";
 import { Textarea } from "../../../../components/CommonUI/textarea";
@@ -49,7 +50,7 @@ export default function CustomSubmissionForm({ hackathon, onCancel }) {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await axios.put(`http://localhost:3000/api/submission-form/hackathon/${hackathon._id}`, {
+      await axios.put(`${API_BASE_URL}/api/submission-form/hackathon/${hackathon._id}`, {
         questions,
         terms,
       }, {

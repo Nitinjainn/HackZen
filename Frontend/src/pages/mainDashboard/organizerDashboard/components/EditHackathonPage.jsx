@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast"; 
 import { Loader2 } from "lucide-react"; 
 import CreateHackathon from "../Create-hackathon";
+import { API_BASE_URL } from "../../../../lib/api";
 
 export default function EditHackathonPage() {
   const { id } = useParams();
@@ -17,7 +18,7 @@ export default function EditHackathonPage() {
       setLoading(true);
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch(`http://localhost:3000/api/hackathons/${id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/hackathons/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error("Failed to fetch hackathon");
@@ -52,7 +53,7 @@ export default function EditHackathonPage() {
     
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/hackathons/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/hackathons/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

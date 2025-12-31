@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "../../../../components/CommonUI/button";
 import { Eye, Send, X } from "lucide-react";
+import { API_BASE_URL } from "../../../../lib/api";
 
 function replacePlaceholders(content, sampleData) {
   return content
@@ -19,7 +20,7 @@ export default function SendCertificateModal({ hackathonId, onClose }) {
   useEffect(() => {
     // Fetch certificate templates
     const token = localStorage.getItem("token");
-    fetch("http://localhost:3000/api/certificate-pages", {
+    fetch(`${API_BASE_URL}/api/certificate-pages`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -35,7 +36,7 @@ export default function SendCertificateModal({ hackathonId, onClose }) {
     const token = localStorage.getItem("token");
     try {
       const res = await fetch(
-        `http://localhost:3000/api/hackathons/${hackathonId}/send-certificates`,
+        `${API_BASE_URL}/api/hackathons/${hackathonId}/send-certificates`,
         {
           method: "POST",
           headers: {

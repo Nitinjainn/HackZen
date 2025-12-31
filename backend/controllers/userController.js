@@ -8,7 +8,7 @@ const RoleInvite = require('../model/RoleInviteModel');
 const Score = require('../model/ScoreModel');
 const PendingUser = require('../model/PendingUserModel');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const sgMail = require('@sendgrid/mail');
 const PasswordResetToken = require('../model/PasswordResetTokenModel');
 
 // Additional models for complete user deletion
@@ -75,41 +75,68 @@ const inviteToOrganization = async (req, res) => {
 
 // ✅ Register a new user (email only)
 const registerUser = async (req, res) => {
+  console.log('[registerUser] Registration request received');
   const { name, email, password, role } = req.body;
 
   try {
+    console.log('[registerUser] Validating input data...', { name, email, role, hasPassword: !!password });
+    
+    // Validate required fields
+    if (!name || !email || !password) {
+      console.log('[registerUser] Missing required fields');
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.log('[registerUser] Invalid email format:', email);
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    console.log('[registerUser] Checking if user already exists...');
     // Check if user already exists in main User collection
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      console.log('[registerUser] User already exists:', email);
       return res.status(400).json({ message: 'User already exists' });
     }
+    
+    console.log('[registerUser] Checking for pending registrations...');
     // Check if pending user exists and not expired
     const pending = await PendingUser.findOne({ email });
     if (pending && pending.codeExpiresAt > new Date()) {
-      return res.status(400).json({ message: 'Verification code already sent. Please check your email.' });
+      console.log('[registerUser] Verification code already sent and not expired:', email);
+      console.log('[registerUser] Code expires at:', pending.codeExpiresAt);
+      console.log('[registerUser] Current time:', new Date());
+      console.log('[registerUser] Code:', pending.verificationCode);
+      // Return success status so frontend shows the popup
+      // Include the code in development for testing (remove in production)
+      return res.status(200).json({ 
+        message: 'Verification code already sent. Please check your email.',
+        codeAlreadySent: true,
+        // Only include code in development for debugging
+        ...(process.env.NODE_ENV === 'development' ? { debugCode: pending.verificationCode } : {})
+      });
     }
+    
+    // If pending exists but expired, delete it
+    if (pending && pending.codeExpiresAt <= new Date()) {
+      console.log('[registerUser] Old pending registration found but expired, deleting...');
+      await PendingUser.deleteOne({ email });
+    }
+    
+    console.log('[registerUser] Hashing password...');
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
+    
+    console.log('[registerUser] Generating verification code...');
     // Generate 6-digit code
     const verificationCode = (Math.floor(100000 + Math.random() * 900000)).toString();
     const codeExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-    // Store in PendingUser
-    await PendingUser.findOneAndUpdate(
-      { email },
-      { name, email, passwordHash, verificationCode, codeExpiresAt, createdAt: new Date(), role },
-      { upsert: true }
-    );
-    // Send email
-    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      return res.status(500).json({ message: 'Email service not configured' });
-    }
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-      }
-    });
+    
+    // Prepare email template
+    // NOTE: We'll store pending user ONLY after email is successfully sent
     const emailTemplate = `
       <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #f4f6fb; border-radius: 12px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -126,33 +153,184 @@ const registerUser = async (req, res) => {
         <div style="text-align: center; margin-top: 16px; color: #aaa; font-size: 12px;">&copy; 2025 HackZen Platform</div>
       </div>
     `;
-    await transporter.sendMail({
-      from: `"HackZen" <${process.env.MAIL_USER}>`,
-      to: email,
-      subject: 'Your Verification Code for HackZen Registration',
-      html: emailTemplate
-    });
-    res.status(200).json({ message: 'Verification code sent to your email.' });
+    
+    const emailText = `Hi ${name || email},\n\nThank you for registering! Please use the code below to verify your email address. This code is valid for 10 minutes.\n\nVerification Code: ${verificationCode}\n\nIf you did not request this, you can ignore this email.\n\n© 2025 HackZen Platform`;
+    
+    // ✅ Use SendGrid API (works on both localhost and Render, sends to ANY email)
+    if (!process.env.SENDGRID_API_KEY) {
+      console.error('[registerUser] ❌ SendGrid API key not configured');
+      console.error('[registerUser] Environment check:', {
+        SENDGRID_API_KEY: process.env.SENDGRID_API_KEY ? 'SET' : 'NOT SET',
+        NODE_ENV: process.env.NODE_ENV
+      });
+      await PendingUser.deleteOne({ email });
+      return res.status(500).json({ 
+        message: 'Email service not configured. Please set SENDGRID_API_KEY in environment variables.',
+        error: 'SENDGRID_API_KEY environment variable is not set'
+      });
+    }
+    
+    try {
+      // Initialize SendGrid - IMPORTANT: Set API key every time
+      const apiKey = process.env.SENDGRID_API_KEY;
+      if (!apiKey || apiKey.trim() === '') {
+        throw new Error('SENDGRID_API_KEY is empty or invalid');
+      }
+      
+      // Ensure API key is set (in case module was loaded before env vars)
+      sgMail.setApiKey(apiKey.trim());
+      
+      const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+      const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+      
+      console.log('[registerUser] ✅ Using SendGrid API for email sending');
+      console.log('[registerUser] API Key present:', !!apiKey);
+      console.log('[registerUser] API Key length:', apiKey ? apiKey.length : 0);
+      console.log('[registerUser] API Key starts with:', apiKey ? apiKey.substring(0, 3) : 'N/A');
+      console.log('[registerUser] Sending to:', email, '(can be ANY email address)');
+      console.log('[registerUser] From:', `${fromName} <${fromEmail}>`);
+      
+      // Validate from email
+      if (!fromEmail || !fromEmail.includes('@')) {
+        throw new Error('Invalid SENDGRID_FROM_EMAIL configuration');
+      }
+      
+      const msg = {
+        to: email,
+        from: {
+          email: fromEmail,
+          name: fromName
+        },
+        subject: 'Your Verification Code for HackZen Registration',
+        html: emailTemplate,
+        text: emailText
+      };
+      
+      const result = await sgMail.send(msg);
+      
+      console.log('[registerUser] ✅ SendGrid email sent successfully:', {
+        statusCode: result[0]?.statusCode,
+        headers: result[0]?.headers,
+        to: email,
+        from: fromEmail
+      });
+      
+      // ✅ ONLY store pending user AFTER email is successfully sent
+      console.log('[registerUser] Storing pending user in database (email sent successfully)...');
+      await PendingUser.findOneAndUpdate(
+        { email },
+        { name, email, passwordHash, verificationCode, codeExpiresAt, createdAt: new Date(), role },
+        { upsert: true }
+      );
+      console.log('[registerUser] Pending user stored successfully');
+      
+      res.status(200).json({ 
+        message: 'Verification code sent to your email.',
+        success: true,
+        emailService: 'sendgrid'
+      });
+    } catch (emailError) {
+      console.error('[registerUser] ❌ SendGrid API error:', emailError);
+      console.error('[registerUser] SendGrid error details:', {
+        message: emailError.message,
+        code: emailError.code,
+        response: emailError.response,
+        responseBody: emailError.response?.body,
+        responseHeaders: emailError.response?.headers,
+        stack: emailError.stack
+      });
+      
+      // Clean up pending user if email fails
+      await PendingUser.deleteOne({ email });
+      
+      // Return user-friendly error message
+      let errorMessage = 'Failed to send verification email. Please try again or contact support if the problem persists.';
+      let statusCode = 500;
+      
+      if (emailError.response) {
+        const { body, statusCode: httpStatus } = emailError.response;
+        console.error('[registerUser] SendGrid HTTP error:', httpStatus);
+        console.error('[registerUser] SendGrid error body:', JSON.stringify(body, null, 2));
+        
+        if (httpStatus === 401 || httpStatus === 403) {
+          errorMessage = 'Email service authentication failed. Please check your SendGrid API key.';
+          statusCode = 503;
+        } else if (httpStatus === 400) {
+          // SendGrid 400 errors often contain helpful messages
+          const sgMessage = body?.errors?.[0]?.message || body?.message || 'Invalid email address or request.';
+          errorMessage = `Email sending failed: ${sgMessage}`;
+          statusCode = 400;
+        } else if (httpStatus >= 500) {
+          errorMessage = 'Email service temporarily unavailable. Please try again in a few moments.';
+          statusCode = 503;
+        }
+      } else if (emailError.message) {
+        // For non-HTTP errors, include the message in development
+        if (process.env.NODE_ENV === 'development') {
+          errorMessage = `Email sending failed: ${emailError.message}`;
+        }
+      }
+      
+      return res.status(statusCode).json({ 
+        message: errorMessage,
+        error: process.env.NODE_ENV === 'development' ? emailError.message : undefined,
+        details: process.env.NODE_ENV === 'development' ? {
+          code: emailError.code,
+          response: emailError.response?.body
+        } : undefined
+      });
+    }
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[registerUser] Registration error:', err);
+    console.error('[registerUser] Error stack:', err.stack);
+    console.error('[registerUser] Error details:', {
+      message: err.message,
+      name: err.name,
+      code: err.code
+    });
+    // Return consistent error format
+    const errorMessage = err.message || 'Registration failed. Please try again.';
+    res.status(500).json({ 
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Registration failed. Please try again.'
+    });
   }
 };
 
 // ✅ Verify registration code and complete registration
 const verifyRegistrationCode = async (req, res) => {
+  console.log('[verifyRegistrationCode] Verification request received');
   const { email, code } = req.body;
+  
   try {
+    console.log('[verifyRegistrationCode] Validating input...', { email, hasCode: !!code });
+    
+    if (!email || !code) {
+      console.log('[verifyRegistrationCode] Missing email or code');
+      return res.status(400).json({ message: 'Email and verification code are required' });
+    }
+
+    console.log('[verifyRegistrationCode] Looking up pending user...');
     const pending = await PendingUser.findOne({ email });
     if (!pending) {
+      console.log('[verifyRegistrationCode] No pending registration found for:', email);
       return res.status(400).json({ message: 'No pending registration found for this email.' });
     }
+    
+    console.log('[verifyRegistrationCode] Checking code expiration...');
     if (pending.codeExpiresAt < new Date()) {
+      console.log('[verifyRegistrationCode] Code expired for:', email);
       await PendingUser.deleteOne({ email });
       return res.status(400).json({ message: 'Verification code expired. Please register again.' });
     }
+    
+    console.log('[verifyRegistrationCode] Verifying code...');
     if (pending.verificationCode !== code) {
+      console.log('[verifyRegistrationCode] Invalid code provided for:', email);
       return res.status(400).json({ message: 'Invalid verification code.' });
     }
+    
+    console.log('[verifyRegistrationCode] Code verified. Creating user account...');
     // Create user
     const isAdminEmail = email === 'admin@rr.dev';
     const newUser = await User.create({
@@ -164,7 +342,15 @@ const verifyRegistrationCode = async (req, res) => {
       bannerImage: "/assets/default-banner.png",
       profileCompleted: false
     });
+    console.log('[verifyRegistrationCode] User created successfully:', newUser._id);
+    
+    console.log('[verifyRegistrationCode] Cleaning up pending user...');
     await PendingUser.deleteOne({ email });
+    
+    console.log('[verifyRegistrationCode] Generating token...');
+    const token = generateToken(newUser);
+    
+    console.log('[verifyRegistrationCode] Registration completed successfully for:', email);
     res.status(201).json({
       user: {
         _id: newUser._id,
@@ -173,10 +359,22 @@ const verifyRegistrationCode = async (req, res) => {
         role: newUser.role,
         profileCompleted: newUser.profileCompleted || false
       },
-      token: generateToken(newUser)
+      token
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[verifyRegistrationCode] Verification error:', err);
+    console.error('[verifyRegistrationCode] Error stack:', err.stack);
+    console.error('[verifyRegistrationCode] Error details:', {
+      message: err.message,
+      name: err.name,
+      code: err.code
+    });
+    // Return consistent error format
+    const errorMessage = err.message || 'Verification failed. Please try again.';
+    res.status(500).json({ 
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Verification failed. Please try again.'
+    });
   }
 };
 
@@ -1243,18 +1441,16 @@ const forgotPassword = async (req, res) => {
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
     await PasswordResetToken.create({ userId: user._id, token, expiresAt });
-    // Send email
-    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+    // Send email using SendGrid
+    if (!process.env.SENDGRID_API_KEY) {
       return res.status(500).json({ message: 'Email service not configured' });
     }
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-      }
-    });
-    const resetUrl = `http://localhost:5173/reset-password?token=${token}`;
+    
+    // Get frontend URL based on environment
+    const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
+      ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app')
+      : 'http://localhost:5173';
+    const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
     const emailTemplate = `
       <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #f4f6fb; border-radius: 12px;">
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -1268,15 +1464,31 @@ const forgotPassword = async (req, res) => {
           </div>
           <p style="color: #888; font-size: 14px;">If you did not request this, you can ignore this email.</p>
         </div>
-        <div style="text-align: center; margin-top: 16px; color: #aaa; font-size: 12px;">&copy; 2024 STPI Hackathon Platform</div>
+        <div style="text-align: center; margin-top: 16px; color: #aaa; font-size: 12px;">&copy; 2025 HackZen Platform</div>
       </div>
     `;
-    await transporter.sendMail({
-      from: `"STPI Hackathon" <${process.env.MAIL_USER}>`,
-      to: email,
-      subject: 'Reset your password for STPI',
-      html: emailTemplate
-    });
+    
+    try {
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+      const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+      const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+      
+      const msg = {
+        to: email,
+        from: {
+          email: fromEmail,
+          name: fromName
+        },
+        subject: 'Reset your password for HackZen',
+        html: emailTemplate
+      };
+      
+      await sgMail.send(msg);
+      console.log('[forgotPassword] Password reset email sent successfully to:', email);
+    } catch (emailError) {
+      console.error('[forgotPassword] Failed to send password reset email:', emailError);
+      // Still return success to user for security (don't reveal if email exists)
+    }
     return res.status(200).json({ message: 'If this email is registered, you will receive a password reset link.' });
   } catch (err) {
     res.status(500).json({ error: err.message });

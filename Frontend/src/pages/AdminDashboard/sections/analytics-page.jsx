@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/CommonUI/card"
 import { RCard, RCardContent, RCardHeader, RCardTitle } from "../../../components/CommonUI/RippleCard"
 import { Button } from "../../../components/CommonUI/button"
+import { API_BASE_URL } from "../../../lib/api"
 import {
   BarChart,
   Bar,
@@ -42,13 +43,13 @@ export function AnalyticsPage() {
         const headers = { Authorization: `Bearer ${token}` };
         // Fetch all analytics endpoints in parallel
         const [userStatsRes, userMonthlyRes, hackathonStatsRes, hackathonMonthlyRes, statusRes, engagementRes, categoryRes] = await Promise.all([
-          axios.get("http://localhost:3000/api/users/admin/stats", { headers }),
-          axios.get("http://localhost:3000/api/users/admin/monthly-stats", { headers }),
-          axios.get("http://localhost:3000/api/hackathons/admin/stats", { headers }),
-          axios.get("http://localhost:3000/api/hackathons/admin/monthly-stats", { headers }),
-          axios.get("http://localhost:3000/api/hackathons/admin/status-breakdown", { headers }),
-          axios.get("http://localhost:3000/api/users/admin/weekly-engagement", { headers }),
-          axios.get("http://localhost:3000/api/hackathons/admin/category-breakdown", { headers }),
+          axios.get(`${API_BASE_URL}/api/users/admin/stats`, { headers }),
+          axios.get(`${API_BASE_URL}/api/users/admin/monthly-stats`, { headers }),
+          axios.get(`${API_BASE_URL}/api/hackathons/admin/stats`, { headers }),
+          axios.get(`${API_BASE_URL}/api/hackathons/admin/monthly-stats`, { headers }),
+          axios.get(`${API_BASE_URL}/api/hackathons/admin/status-breakdown`, { headers }),
+          axios.get(`${API_BASE_URL}/api/users/admin/weekly-engagement`, { headers }),
+          axios.get(`${API_BASE_URL}/api/hackathons/admin/category-breakdown`, { headers }),
         ]);
         setUserStats(userStatsRes.data);
         setUserMonthlyStats(userMonthlyRes.data);

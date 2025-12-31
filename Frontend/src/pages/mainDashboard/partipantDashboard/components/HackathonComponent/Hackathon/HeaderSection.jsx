@@ -3,6 +3,7 @@ import { ArrowLeft, Heart, Share2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../../../../components/CommonUI/button";
 import { Badge } from "../../../../../../components/CommonUI/badge";
+import { API_BASE_URL } from "../../../../../../lib/api";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -30,7 +31,7 @@ export default function HeaderSection({
   const handleSave = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:3000/api/users/save-hackathon", {
+      const res = await fetch(`${API_BASE_URL}/api/users/save-hackathon`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -51,7 +52,7 @@ export default function HeaderSection({
   const handleUnregister = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/registration/${hackathon._id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/registration/${hackathon._id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

@@ -12,6 +12,7 @@ import {
   FileText,
   Calendar,
 } from "lucide-react";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   Card,
   CardContent,
@@ -124,7 +125,7 @@ export function OrganizerTools() {
     const fetchAnalytics = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await fetch("http://localhost:3000/api/hackathons/my", {
+        const res = await fetch(`${API_BASE_URL}/api/hackathons/my`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const hackathons = await res.json();

@@ -4,6 +4,7 @@ import { Button } from "../components/CommonUI/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/CommonUI/card";
 import { CheckCircle, XCircle, Gavel, AlertCircle, Award, LogIn, Mail } from "lucide-react";
 import toast from "react-hot-toast";
+import { API_BASE_URL } from "../lib/api";
 
 export default function InviteRole() {
   const [searchParams] = useSearchParams();
@@ -18,7 +19,7 @@ export default function InviteRole() {
   useEffect(() => {
     if (token) {
       // Fetch invite details
-      fetch(`http://localhost:3000/api/role-invites/${token}`)
+      fetch(`${API_BASE_URL}/api/role-invites/${token}`)
         .then(res => res.json())
         .then(data => setInvite(data))
         .catch(err => {
@@ -31,7 +32,7 @@ export default function InviteRole() {
       const userToken = localStorage.getItem('token');
       if (userToken) {
         // Verify token and get user info
-        fetch('http://localhost:3000/api/users/me', {
+        fetch(`${API_BASE_URL}/api/users/me`, {
           headers: { Authorization: `Bearer ${userToken}` }
         })
         .then(res => {
@@ -72,7 +73,7 @@ export default function InviteRole() {
         return;
       }
 
-      const res = await fetch(`http://localhost:3000${endpoint}`, {
+      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: "POST",
         headers: { 
           'Content-Type': 'application/json',

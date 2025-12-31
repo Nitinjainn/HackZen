@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "./card";
 import { Badge } from "./badge";
 import { Skeleton } from "../DashboardUI/skeleton";
 import { Star, User } from "lucide-react";
+import { API_BASE_URL } from "../../lib/api";
 
 const CRITERIA = [
   { key: "innovation", label: "Innovation", tooltip: "How novel is the idea?" },
@@ -27,7 +28,7 @@ export default function ProjectScoresList({ submissionId }) {
     if (!submissionId) return;
     setLoading(true);
     setError("");
-    fetch(`http://localhost:3000/api/scores/submission/${submissionId}`, {
+    fetch(`${API_BASE_URL}/api/scores/submission/${submissionId}`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
     })
       .then((res) => res.json())

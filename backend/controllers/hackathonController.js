@@ -4,7 +4,7 @@ const ChatRoom = require('../model/ChatRoomModel');
 const User = require('../model/UserModel');
 const RoleInvite = require('../model/RoleInviteModel');
 const crypto = require('crypto');
-const transporter = require('../config/mailer');
+const sgMail = require('@sendgrid/mail');
 const { awardOrganizerBadges } = require('../utils/badgeUtils');
 const HackathonRegistration = require('../model/HackathonRegistrationModel');
 const CertificatePage = require('../model/CertificatePageModel');
@@ -14,18 +14,37 @@ const fs = require('fs'); // Add at the top
 // ... (all existing helper functions like sendCertificateEmail and generateCertificateImage remain the same)
 
 // Helper: Send certificate email with personalized image
-async function sendCertificateEmail(transporter, to, buffer, hackathonTitle) {
- return transporter.sendMail({
- to,
- subject: `Your Certificate for ${hackathonTitle}`,
+async function sendCertificateEmail(to, buffer, hackathonTitle) {
+ if (!process.env.SENDGRID_API_KEY) {
+  throw new Error('SENDGRID_API_KEY not configured');
+ }
+ 
+ sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+ const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+ const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+ 
+ // Convert buffer to base64 for SendGrid attachment
+ const base64Content = buffer.toString('base64');
+ 
+ const msg = {
+  to,
+  from: {
+   email: fromEmail,
+   name: fromName
+  },
+  subject: `Your Certificate for ${hackathonTitle}`,
   text: `Congratulations! Please find your certificate attached.`,
   attachments: [
    {
+    content: base64Content,
     filename: 'certificate.png',
-    content: buffer
-  }
+    type: 'image/png',
+    disposition: 'attachment'
+   }
   ]
- });
+ };
+ 
+ return await sgMail.send(msg);
 }
 
 // Helper: Generate certificate image with personalized fields
@@ -332,21 +351,19 @@ exports.updateHackathon = async (req, res) => {
     MAIL_PASS_VALUE: process.env.MAIL_PASS ? 'SET' : 'NOT SET'
    });
   
-   if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-    console.log('Email credentials not configured - skipping email send');
-    console.log('Please check your environment variables: MAIL_USER and MAIL_PASS');
+   if (!process.env.SENDGRID_API_KEY) {
+    console.log('SendGrid API key not configured - skipping email send');
+    console.log('Please check your environment variable: SENDGRID_API_KEY');
     return;
    }
   
-   const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-     user: process.env.MAIL_USER,
-     pass: process.env.MAIL_PASS
-    }
-   });
+   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   
-   const inviteLink = `http://localhost:5173/invite/role?token=${token}`;
+   // Get frontend URL based on environment
+   const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
+     ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app')
+     : 'http://localhost:5173';
+   const inviteLink = `${frontendUrl}/invite/role?token=${token}`;
    const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
    const roleIcon = role === 'judge' ? '⚖️' : '🎓';
    const roleColor = role === 'judge' ? '#f59e0b' : '#10b981';
@@ -420,12 +437,20 @@ exports.updateHackathon = async (req, res) => {
    try {
     console.log(`Sending email to ${email} for ${role} role in hackathon: ${hackathonData.title}`);
    
-    await transporter.sendMail({
-     from: `"HackZen Team" <${process.env.MAIL_USER}>`,
+    const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'gjain0229@gmail.com';
+    const fromName = process.env.SENDGRID_FROM_NAME || 'HackZen';
+    
+    const msg = {
      to: email,
+     from: {
+      email: fromEmail,
+      name: fromName
+     },
      subject: `${roleIcon} You're invited to be a ${roleDisplay} for ${hackathonData.title}!`,
      html: emailTemplate
-    });
+    };
+    
+    await sgMail.send(msg);
    
     console.log(`Role invite email sent successfully to ${email} for ${role} role`);
    } catch (emailError) {
@@ -642,36 +667,56 @@ exports.deleteHackathon = async (req, res) => {
 // ✅ Admin: Approve or Reject hackathon
 exports.updateApprovalStatus = async (req, res) => {
  try {
+  console.log('[updateApprovalStatus] Starting approval status update', { id: req.params.id, status: req.body.status });
   const { id } = req.params;
   const { status } = req.body;
 
   if (!['approved', 'rejected'].includes(status)) {
+   console.log('[updateApprovalStatus] Invalid status provided:', status);
    return res.status(400).json({ message: 'Invalid status' });
   }
 
+  console.log('[updateApprovalStatus] Updating hackathon in database...');
   const updated = await Hackathon.findByIdAndUpdate(
    id,
    { approvalStatus: status },
    { new: true }
   ).populate('organizer', 'name email');
 
-  if (!updated) return res.status(404).json({ message: 'Hackathon not found' });
+  if (!updated) {
+   console.log('[updateApprovalStatus] Hackathon not found:', id);
+   return res.status(404).json({ message: 'Hackathon not found' });
+  }
+
+  console.log('[updateApprovalStatus] Hackathon updated successfully:', updated.title);
 
   // On approval, send judge/mentor invites
   if (status === 'approved') {
+   console.log('[updateApprovalStatus] Processing approval - sending invites...');
    // Helper to send invite email
    const sendInviteEmail = async (email, role, token) => {
-    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) return;
+    if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+     console.log('[updateApprovalStatus] Email service not configured, skipping email to:', email);
+     return;
+    }
    
-    const transporter = nodemailer.createTransport({
-     service: 'gmail',
-     auth: {
-      user: process.env.MAIL_USER,
-      pass: process.env.MAIL_PASS
-     }
-    });
+    if (!process.env.SENDGRID_API_KEY) {
+     console.log('[updateApprovalStatus] SendGrid API key not configured - skipping email send');
+     return;
+    }
+    
+    try {
+     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    } catch (error) {
+     console.error('[updateApprovalStatus] Failed to initialize SendGrid:', error);
+     return;
+    }
    
-    const inviteLink = `http://localhost:5173/invite/role?token=${token}`;
+    // Get frontend URL based on environment
+   const frontendUrl = process.env.NODE_ENV === 'production' || process.env.RENDER
+     ? (process.env.FRONTEND_URL || 'https://hackzen.vercel.app')
+     : 'http://localhost:5173';
+   const inviteLink = `${frontendUrl}/invite/role?token=${token}`;
     const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
     const roleIcon = role === 'judge' ? '⚖️' : '🎓';
     const roleColor = role === 'judge' ? '#f59e0b' : '#10b981';
@@ -743,73 +788,110 @@ exports.updateApprovalStatus = async (req, res) => {
     `;
    
     try {
-     await transporter.sendMail({
+     await emailTransporter.sendMail({
       from: `"HackZen Team" <${process.env.MAIL_USER}>`,
       to: email,
       subject: `${roleIcon} You're invited to be a ${roleDisplay} for ${updated.title}!`,
       html: emailTemplate
      });
     
-     console.log(`Role invite email sent successfully to ${email} for ${role} role`);
+     console.log(`[updateApprovalStatus] Role invite email sent successfully to ${email} for ${role} role`);
     } catch (emailError) {
-     console.error('Role invite email sending failed:', emailError);
+     console.error('[updateApprovalStatus] Role invite email sending failed:', emailError);
+     // Don't throw - email failures shouldn't block approval
     }
    };
+   
    // Judges
    if (Array.isArray(updated.judges)) {
+    console.log('[updateApprovalStatus] Processing judges:', updated.judges.length);
     for (const email of updated.judges) {
      if (!email) continue;
-     // Check if invite already exists
-     let invite = await RoleInvite.findOne({ email, hackathon: updated._id, role: 'judge' });
-     if (!invite) {
-      const token = crypto.randomBytes(32).toString('hex');
-      invite = await RoleInvite.create({
-       email,
-       hackathon: updated._id,
-       role: 'judge',
-       token
-      });
-      console.log(`[RoleInvite] Created judge invite:`, { email, role: 'judge', token });
-      await sendInviteEmail(email, 'judge', token);
+     try {
+      // Check if invite already exists
+      let invite = await RoleInvite.findOne({ email, hackathon: updated._id, role: 'judge' });
+      if (!invite) {
+       const token = crypto.randomBytes(32).toString('hex');
+       invite = await RoleInvite.create({
+        email,
+        hackathon: updated._id,
+        role: 'judge',
+        token
+       });
+       console.log(`[updateApprovalStatus] Created judge invite:`, { email, role: 'judge', token });
+       await sendInviteEmail(email, 'judge', token);
+      } else {
+       console.log(`[updateApprovalStatus] Judge invite already exists for ${email}`);
+      }
+     } catch (judgeError) {
+      console.error(`[updateApprovalStatus] Error processing judge invite for ${email}:`, judgeError);
+      // Continue with other judges even if one fails
      }
     }
    }
+   
    // Mentors
    if (Array.isArray(updated.mentors)) {
+    console.log('[updateApprovalStatus] Processing mentors:', updated.mentors.length);
     for (const email of updated.mentors) {
      if (!email) continue;
-     let invite = await RoleInvite.findOne({ email, hackathon: updated._id, role: 'mentor' });
-     if (!invite) {
-      const token = crypto.randomBytes(32).toString('hex');
-      invite = await RoleInvite.create({
-       email,
-       hackathon: updated._id,
-       role: 'mentor',
-       token
-      });
-      console.log(`[RoleInvite] Created mentor invite:`, { email, role: 'mentor', token });
-      await sendInviteEmail(email, 'mentor', token);
+     try {
+      let invite = await RoleInvite.findOne({ email, hackathon: updated._id, role: 'mentor' });
+      if (!invite) {
+       const token = crypto.randomBytes(32).toString('hex');
+       invite = await RoleInvite.create({
+        email,
+        hackathon: updated._id,
+        role: 'mentor',
+        token
+       });
+       console.log(`[updateApprovalStatus] Created mentor invite:`, { email, role: 'mentor', token });
+       await sendInviteEmail(email, 'mentor', token);
+      } else {
+       console.log(`[updateApprovalStatus] Mentor invite already exists for ${email}`);
+      }
+     } catch (mentorError) {
+      console.error(`[updateApprovalStatus] Error processing mentor invite for ${email}:`, mentorError);
+      // Continue with other mentors even if one fails
      }
     }
    }
+   console.log('[updateApprovalStatus] Finished processing invites');
   }
 
   // Send notification to organizer
-  const notificationMessage = status === 'approved'
-   ? `🎉 Your hackathon "${updated.title}" has been approved! It's now visible in the explore section.`
-   : `❌ Your hackathon "${updated.title}" has been rejected. Please review and resubmit.`;
+  console.log('[updateApprovalStatus] Creating notification for organizer...');
+  try {
+   const notificationMessage = status === 'approved'
+    ? `🎉 Your hackathon "${updated.title}" has been approved! It's now visible in the explore section.`
+    : `❌ Your hackathon "${updated.title}" has been rejected. Please review and resubmit.`;
 
-  await Notification.create({
-   recipient: updated.organizer._id,
-   message: notificationMessage,
-   type: status === 'approved' ? 'success' : 'warning',
-   hackathon: updated._id
-  });
+   await Notification.create({
+    recipient: updated.organizer._id,
+    message: notificationMessage,
+    type: status === 'approved' ? 'success' : 'warning',
+    hackathon: updated._id
+   });
+   console.log('[updateApprovalStatus] Notification created successfully');
+  } catch (notificationError) {
+   console.error('[updateApprovalStatus] Failed to create notification:', notificationError);
+   // Don't fail the request if notification creation fails
+  }
 
+  console.log('[updateApprovalStatus] Approval status update completed successfully');
   res.json(updated);
  } catch (err) {
-  console.error("Error updating approval status:", err);
-  res.status(500).json({ message: 'Error updating approval status' });
+  console.error("[updateApprovalStatus] Error updating approval status:", err);
+  console.error("[updateApprovalStatus] Error stack:", err.stack);
+  console.error("[updateApprovalStatus] Error details:", {
+   message: err.message,
+   name: err.name,
+   code: err.code
+  });
+  res.status(500).json({ 
+   message: 'Error updating approval status',
+   error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+  });
  }
 };
 
@@ -1109,7 +1191,7 @@ exports.sendCertificates = async (req, res) => {
     // 1. Generate certificate image
     const buffer = await generateCertificateImage(template, personalizedFields);
     // 2. Send email with image attachment
-    await sendCertificateEmail(transporter, participant.email, buffer, hackathon.title);
+    await sendCertificateEmail(participant.email, buffer, hackathon.title);
     sentCount++;
    } catch (err) {
     failed.push({ email: participant.email, error: err.message });

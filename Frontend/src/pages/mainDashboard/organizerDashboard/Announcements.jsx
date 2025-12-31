@@ -7,6 +7,7 @@ import {
   Eye,
   Clock,
 } from "lucide-react";
+import { API_BASE_URL } from "../../../lib/api";
 import {
   Card,
   CardContent,
@@ -47,7 +48,7 @@ export function Announcements() {
   const fetchAnnouncements = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:3000/api/announcements", {
+      const res = await fetch(`${API_BASE_URL}/api/announcements`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -64,7 +65,7 @@ export function Announcements() {
   const handleQuickSend = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:3000/api/announcements/send", {
+      const res = await fetch(`${API_BASE_URL}/api/announcements/send`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

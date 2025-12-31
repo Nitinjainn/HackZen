@@ -1,6 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { useAuth } from "../../../../context/AuthContext"
+import { API_BASE_URL } from "../../../../lib/api"
 import {
   ArrowLeft,
   Upload,
@@ -94,7 +95,7 @@ export function HackathonRegistration({ hackathon, onBack, onSuccess, editMode =
         try {
           const token = localStorage.getItem("token");
           // Fetch complete user profile data
-          const profileResponse = await fetch("http://localhost:3000/api/users/me", {
+          const profileResponse = await fetch(`${API_BASE_URL}/api/users/me`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -235,10 +236,10 @@ export function HackathonRegistration({ hackathon, onBack, onSuccess, editMode =
       }
 
       const endpoint = editMode 
-        ? `http://localhost:3000/api/registration/${hackathon._id}/update`
+        ? `${API_BASE_URL}/api/registration/${hackathon._id}/update`
         : inviteMode
           ? null // handled by parent
-          : "http://localhost:3000/api/registration";
+          : `${API_BASE_URL}/api/registration`;
       const method = editMode ? "PUT" : "POST";
 
       if (inviteMode) {

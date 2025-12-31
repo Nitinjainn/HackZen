@@ -7,6 +7,14 @@ const { protect, isAdmin, isOrganizerOrAdmin } = require('../middleware/authMidd
 const trackStreak = require("../middleware/trackStreak");
 const User = require('../model/UserModel');
 const RoleInvite = require('../model/RoleInviteModel');
+
+// Helper function to get frontend URL based on environment
+const getFrontendUrl = () => {
+  if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+    return process.env.FRONTEND_URL || 'https://hackzen.vercel.app';
+  }
+  return 'http://localhost:5173';
+};
 // 🔐 OAuth Routes
 router.get('/github', (req, res, next) => {
   const redirectTo = req.query.redirectTo;
@@ -30,8 +38,9 @@ router.get('/google', (req, res, next) => {
 router.get('/github/callback', (req, res, next) => {
   passport.authenticate('github', { failureRedirect: '/login', session: false }, (err, user) => {
     if (err) return next(err);
+    const frontendUrl = getFrontendUrl();
     if (user && user.needsRegistration) {
-      const baseRedirectUrl = `http://localhost:5173/oauth-success?needsRegistration=true&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&authProvider=github&profileImage=${encodeURIComponent(user.profileImage || '')}&githubUsername=${encodeURIComponent(user.githubUsername || '')}`;
+      const baseRedirectUrl = `${frontendUrl}/oauth-success?needsRegistration=true&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&authProvider=github&profileImage=${encodeURIComponent(user.profileImage || '')}&githubUsername=${encodeURIComponent(user.githubUsername || '')}`;
       return res.redirect(baseRedirectUrl);
     }
     // Only create session for registered users
@@ -47,7 +56,7 @@ router.get('/github/callback', (req, res, next) => {
           console.warn('Failed to parse OAuth state:', err);
         }
       }
-      const baseRedirectUrl = `http://localhost:5173/oauth-success?token=${token}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&_id=${user._id}&role=${user.role}&profileCompleted=${user.profileCompleted || false}&authProvider=github`;
+      const baseRedirectUrl = `${frontendUrl}/oauth-success?token=${token}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&_id=${user._id}&role=${user.role}&profileCompleted=${user.profileCompleted || false}&authProvider=github`;
       const redirectUrl = redirectTo ? `${baseRedirectUrl}&redirectTo=${encodeURIComponent(redirectTo)}` : baseRedirectUrl;
       res.redirect(redirectUrl);
     });
@@ -58,8 +67,9 @@ router.get('/github/callback', (req, res, next) => {
 router.get('/google/callback', (req, res, next) => {
   passport.authenticate('google', { failureRedirect: '/login', session: false }, (err, user) => {
     if (err) return next(err);
+    const frontendUrl = getFrontendUrl();
     if (user && user.needsRegistration) {
-      const baseRedirectUrl = `http://localhost:5173/oauth-success?needsRegistration=true&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&authProvider=google&profileImage=${encodeURIComponent(user.profileImage || '')}`;
+      const baseRedirectUrl = `${frontendUrl}/oauth-success?needsRegistration=true&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&authProvider=google&profileImage=${encodeURIComponent(user.profileImage || '')}`;
       return res.redirect(baseRedirectUrl);
     }
     // Only create session for registered users
@@ -75,7 +85,7 @@ router.get('/google/callback', (req, res, next) => {
           console.warn('Failed to parse OAuth state:', err);
         }
       }
-      const baseRedirectUrl = `http://localhost:5173/oauth-success?token=${token}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&_id=${user._id}&role=${user.role}&profileCompleted=${user.profileCompleted || false}&authProvider=google`;
+      const baseRedirectUrl = `${frontendUrl}/oauth-success?token=${token}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}&_id=${user._id}&role=${user.role}&profileCompleted=${user.profileCompleted || false}&authProvider=google`;
       const redirectUrl = redirectTo ? `${baseRedirectUrl}&redirectTo=${encodeURIComponent(redirectTo)}` : baseRedirectUrl;
       res.redirect(redirectUrl);
     });

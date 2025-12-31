@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react"
 import axios from "axios"
+import { API_BASE_URL } from "../../../lib/api"
 
 import {
   Card,
@@ -44,7 +45,7 @@ export function BlogManage() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/articles/all", {
+        const res = await axios.get(`${API_BASE_URL}/api/articles/all`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`
           }
@@ -63,7 +64,7 @@ export function BlogManage() {
   const updateStatus = async (id, status) => {
     try {
       const res = await axios.patch(
-        `http://localhost:3000/api/articles/status/${id}`,
+        `${API_BASE_URL}/api/articles/status/${id}`,
         { status },
         {
           headers: {

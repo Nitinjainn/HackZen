@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../lib/api';
 
 export default function TwoFASetup({ token, onSuccess, onCancel }) {
   const [qr, setQr] = useState(null);
@@ -15,7 +16,7 @@ export default function TwoFASetup({ token, onSuccess, onCancel }) {
     setLoading(true);
     try {
       console.log('Starting 2FA setup...');
-      const res = await axios.post('http://localhost:3000/api/users/2fa/generate', {}, {
+      const res = await axios.post(`${API_BASE_URL}/api/users/2fa/generate`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -41,7 +42,7 @@ export default function TwoFASetup({ token, onSuccess, onCancel }) {
     setLoading(true);
     try {
       console.log('Verifying 2FA code...');
-      const res = await axios.post('http://localhost:3000/api/users/2fa/verify', 
+      const res = await axios.post(`${API_BASE_URL}/api/users/2fa/verify`, 
         { token: code },
         { headers: { Authorization: `Bearer ${token}` } }
       );

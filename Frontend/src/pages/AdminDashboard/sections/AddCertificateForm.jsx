@@ -7,6 +7,7 @@ import { Textarea } from "../../../components/CommonUI/textarea"
 import { Label } from "../../../components/CommonUI/label"
 import { Upload, ImageIcon, CheckCircle, AlertCircle, X } from "lucide-react"
 import { Card, CardHeader, CardTitle, CardContent } from "../../../components/CommonUI/card"
+import { API_BASE_URL } from "../../../lib/api"
 
 export default function AddCertificateForm() {
   const [formData, setFormData] = useState({
@@ -62,7 +63,7 @@ export default function AddCertificateForm() {
   try {
     const token = localStorage.getItem("token"); // or use context if using AuthProvider
 
-    const res = await fetch("http://localhost:3000/api/certificate-pages", {
+    const res = await fetch(`${API_BASE_URL}/api/certificate-pages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

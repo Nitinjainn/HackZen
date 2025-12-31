@@ -7,6 +7,7 @@ import BaseModal from "./BaseModal";
 import { Copy, X } from "lucide-react"; 
 import { useToast } from "../../../../../../../hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { API_BASE_URL } from "../../../../../../../lib/api";
 
 export default function InviteModal({ onInvite, team, hackathon, project, show, onClose }) {
   const [email, setEmail] = useState("");
@@ -62,7 +63,7 @@ export default function InviteModal({ onInvite, team, hackathon, project, show, 
       } else if (project) {
         inviteData.projectId = project._id;
       }
-      const res = await fetch("http://localhost:3000/api/team-invites", {
+      const res = await fetch(`${API_BASE_URL}/api/team-invites`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

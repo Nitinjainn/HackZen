@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../../../../components/CommonUI/card";
 import { Button } from "../../../../components/CommonUI/button";
+import { API_BASE_URL } from "../../../../lib/api";
 import { Gavel, Loader2, Users, Award, FileText, Eye, Calendar, Mail, CheckCircle, RefreshCw, Clock } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "../../../../components/DashboardUI/avatar";
 import { toast } from "../../../../hooks/use-toast";
@@ -127,7 +128,7 @@ export default function JudgeManagementAssignments({
       const token = localStorage.getItem('token');
       
       // Build URL with filters
-      let url = `http://localhost:3000/api/judge-management/hackathons/${hackathonId}/assignment-overview`;
+      let url = `${API_BASE_URL}/api/judge-management/hackathons/${hackathonId}/assignment-overview`;
       const params = new URLSearchParams();
       
       // Add roundIndex filter based on selected stage
@@ -217,7 +218,7 @@ export default function JudgeManagementAssignments({
     setUnassigning(prev => ({ ...prev, [assignmentId]: true }));
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/judge-management/judge-assignments/${assignmentId}/assign-teams`, {
+      const res = await fetch(`${API_BASE_URL}/api/judge-management/judge-assignments/${assignmentId}/assign-teams`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ teamIds: [] }),
@@ -281,7 +282,7 @@ export default function JudgeManagementAssignments({
     setDeletingJudge(judgeAssignment._id);
         try {
           const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:3000/api/judge-management/hackathons/${hackathon?._id || hackathon?.id}/judges/${judgeAssignment._id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/judge-management/hackathons/${hackathon?._id || hackathon?.id}/judges/${judgeAssignment._id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
@@ -339,7 +340,7 @@ export default function JudgeManagementAssignments({
       
       if (allSubmissionIds.length === 0) return;
 
-      const response = await fetch(`http://localhost:3000/api/scores/submissions-scores`, {
+      const response = await fetch(`${API_BASE_URL}/api/scores/submissions-scores`, {
         method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -403,7 +404,7 @@ export default function JudgeManagementAssignments({
       const token = localStorage.getItem('token');
       
       // Build URL with query parameters for filtering
-      let url = `http://localhost:3000/api/judge-management/hackathons/${hackathonId}/available-judges`;
+      let url = `${API_BASE_URL}/api/judge-management/hackathons/${hackathonId}/available-judges`;
       const params = new URLSearchParams();
       
       if (problemStatementId) {
