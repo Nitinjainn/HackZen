@@ -75,36 +75,66 @@ const inviteToOrganization = async (req, res) => {
 
 // ✅ Register a new user (email only)
 const registerUser = async (req, res) => {
+  console.log('[registerUser] Registration request received');
   const { name, email, password, role } = req.body;
 
   try {
+    console.log('[registerUser] Validating input data...', { name, email, role, hasPassword: !!password });
+    
+    // Validate required fields
+    if (!name || !email || !password) {
+      console.log('[registerUser] Missing required fields');
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.log('[registerUser] Invalid email format:', email);
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    console.log('[registerUser] Checking if user already exists...');
     // Check if user already exists in main User collection
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      console.log('[registerUser] User already exists:', email);
       return res.status(400).json({ message: 'User already exists' });
     }
+    
+    console.log('[registerUser] Checking for pending registrations...');
     // Check if pending user exists and not expired
     const pending = await PendingUser.findOne({ email });
     if (pending && pending.codeExpiresAt > new Date()) {
+      console.log('[registerUser] Verification code already sent and not expired:', email);
       return res.status(400).json({ message: 'Verification code already sent. Please check your email.' });
     }
+    
+    console.log('[registerUser] Hashing password...');
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
+    
+    console.log('[registerUser] Generating verification code...');
     // Generate 6-digit code
     const verificationCode = (Math.floor(100000 + Math.random() * 900000)).toString();
     const codeExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    
+    console.log('[registerUser] Storing pending user in database...');
     // Store in PendingUser
     await PendingUser.findOneAndUpdate(
       { email },
       { name, email, passwordHash, verificationCode, codeExpiresAt, createdAt: new Date(), role },
       { upsert: true }
     );
+    console.log('[registerUser] Pending user stored successfully');
+    
     // Send email
     if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      console.error('Email service not configured - MAIL_USER or MAIL_PASS missing');
+      console.error('[registerUser] Email service not configured - MAIL_USER or MAIL_PASS missing');
       return res.status(500).json({ message: 'Email service not configured' });
     }
     
+    console.log('[registerUser] Creating email transporter...');
     try {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -114,6 +144,7 @@ const registerUser = async (req, res) => {
         }
       });
       
+      console.log('[registerUser] Preparing email template...');
       const emailTemplate = `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #f4f6fb; border-radius: 12px;">
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 10px 10px 0 0; text-align: center;">
@@ -131,6 +162,7 @@ const registerUser = async (req, res) => {
         </div>
       `;
       
+      console.log('[registerUser] Sending verification email to:', email);
       await transporter.sendMail({
         from: `"HackZen" <${process.env.MAIL_USER}>`,
         to: email,
@@ -138,39 +170,70 @@ const registerUser = async (req, res) => {
         html: emailTemplate
       });
       
-      console.log(`Verification email sent successfully to ${email}`);
+      console.log('[registerUser] Verification email sent successfully to', email);
       res.status(200).json({ message: 'Verification code sent to your email.' });
     } catch (emailError) {
-      console.error('Email sending error:', emailError);
+      console.error('[registerUser] Email sending error:', emailError);
+      console.error('[registerUser] Email error details:', {
+        message: emailError.message,
+        code: emailError.code,
+        response: emailError.response,
+        stack: emailError.stack
+      });
       // Still save the pending user, but return error about email
       throw new Error(`Failed to send verification email: ${emailError.message}`);
     }
   } catch (err) {
-    console.error('Registration error:', err);
+    console.error('[registerUser] Registration error:', err);
+    console.error('[registerUser] Error stack:', err.stack);
+    console.error('[registerUser] Error details:', {
+      message: err.message,
+      name: err.name,
+      code: err.code
+    });
     // Return consistent error format
     const errorMessage = err.message || 'Registration failed. Please try again.';
     res.status(500).json({ 
       message: errorMessage,
-      error: errorMessage 
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Registration failed. Please try again.'
     });
   }
 };
 
 // ✅ Verify registration code and complete registration
 const verifyRegistrationCode = async (req, res) => {
+  console.log('[verifyRegistrationCode] Verification request received');
   const { email, code } = req.body;
+  
   try {
+    console.log('[verifyRegistrationCode] Validating input...', { email, hasCode: !!code });
+    
+    if (!email || !code) {
+      console.log('[verifyRegistrationCode] Missing email or code');
+      return res.status(400).json({ message: 'Email and verification code are required' });
+    }
+
+    console.log('[verifyRegistrationCode] Looking up pending user...');
     const pending = await PendingUser.findOne({ email });
     if (!pending) {
+      console.log('[verifyRegistrationCode] No pending registration found for:', email);
       return res.status(400).json({ message: 'No pending registration found for this email.' });
     }
+    
+    console.log('[verifyRegistrationCode] Checking code expiration...');
     if (pending.codeExpiresAt < new Date()) {
+      console.log('[verifyRegistrationCode] Code expired for:', email);
       await PendingUser.deleteOne({ email });
       return res.status(400).json({ message: 'Verification code expired. Please register again.' });
     }
+    
+    console.log('[verifyRegistrationCode] Verifying code...');
     if (pending.verificationCode !== code) {
+      console.log('[verifyRegistrationCode] Invalid code provided for:', email);
       return res.status(400).json({ message: 'Invalid verification code.' });
     }
+    
+    console.log('[verifyRegistrationCode] Code verified. Creating user account...');
     // Create user
     const isAdminEmail = email === 'admin@rr.dev';
     const newUser = await User.create({
@@ -182,7 +245,15 @@ const verifyRegistrationCode = async (req, res) => {
       bannerImage: "/assets/default-banner.png",
       profileCompleted: false
     });
+    console.log('[verifyRegistrationCode] User created successfully:', newUser._id);
+    
+    console.log('[verifyRegistrationCode] Cleaning up pending user...');
     await PendingUser.deleteOne({ email });
+    
+    console.log('[verifyRegistrationCode] Generating token...');
+    const token = generateToken(newUser);
+    
+    console.log('[verifyRegistrationCode] Registration completed successfully for:', email);
     res.status(201).json({
       user: {
         _id: newUser._id,
@@ -191,15 +262,21 @@ const verifyRegistrationCode = async (req, res) => {
         role: newUser.role,
         profileCompleted: newUser.profileCompleted || false
       },
-      token: generateToken(newUser)
+      token
     });
   } catch (err) {
-    console.error('Verification error:', err);
+    console.error('[verifyRegistrationCode] Verification error:', err);
+    console.error('[verifyRegistrationCode] Error stack:', err.stack);
+    console.error('[verifyRegistrationCode] Error details:', {
+      message: err.message,
+      name: err.name,
+      code: err.code
+    });
     // Return consistent error format
     const errorMessage = err.message || 'Verification failed. Please try again.';
     res.status(500).json({ 
       message: errorMessage,
-      error: errorMessage 
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Verification failed. Please try again.'
     });
   }
 };

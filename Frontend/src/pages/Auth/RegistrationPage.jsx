@@ -600,6 +600,12 @@ export default function SignupPage() {
         return;
       }
       // 1. Register user (name, email, password)
+      console.log('[RegistrationPage] Starting registration...', { 
+        email: formData.email, 
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        role: selectedRole 
+      });
+      
       const name = `${formData.firstName} ${formData.lastName}`.trim()
       const res = await axios.post(`${API_BASE_URL}/api/users/register`, {
         name,
@@ -607,15 +613,31 @@ export default function SignupPage() {
         password: formData.password,
         role: selectedRole === 'organizer' ? 'organizer' : selectedRole
       })
+      
+      console.log('[RegistrationPage] Registration request successful:', res.data);
       setEmailForCode(formData.email)
       setSuccessMsg(res.data.message || "Verification code sent to your email.")
       // Show SweetAlert2 popup for code entry
       await showVerificationPopup()
     } catch (err) {
+      console.error('[RegistrationPage] Registration error:', err);
+      console.error('[RegistrationPage] Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        config: {
+          url: err.config?.url,
+          method: err.config?.method
+        }
+      });
+      
       // If the error is 'Verification code already sent', show the popup anyway
-      const msg = err.response?.data?.message || "Registration failed. Please try again."
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || "Registration failed. Please try again."
       setErrorMsg(msg)
+      
       if (msg.includes("Verification code already sent")) {
+        console.log('[RegistrationPage] Code already sent, showing popup anyway');
         setEmailForCode(formData.email)
         await showVerificationPopup()
       }
@@ -656,9 +678,12 @@ export default function SignupPage() {
       if (!code) break // User cancelled
       setLoading(true)
       try {
+        console.log('[RegistrationPage] Attempting to verify code:', code);
         await handleVerifyCode(code)
         verified = true
+        console.log('[RegistrationPage] Verification successful');
       } catch (err) {
+        console.error('[RegistrationPage] Verification failed in popup:', err);
         error = err?.message || "Verification failed. Please try again."
         MySwal.showValidationMessage(error)
       } finally {
@@ -673,14 +698,25 @@ export default function SignupPage() {
     setSuccessMsg("")
     // setLoading(true) // handled in showVerificationPopup
     try {
+      const email = emailForCode?.trim() || formData.email?.trim();
+      const verificationCode = String(code).trim().padStart(6, "0");
+      
+      console.log('[RegistrationPage] Verifying code...', { email, code: verificationCode });
+      
       // 2. Verify code
       const res = await axios.post(`${API_BASE_URL}/api/users/verify-registration`, {
-        email: emailForCode?.trim() || formData.email?.trim(),
-        code: String(code).trim().padStart(6, "0")
+        email,
+        code: verificationCode
       })
+      
+      console.log('[RegistrationPage] Code verified successfully:', res.data);
+      
       // 3. Complete profile
       const user = res.data.user
       const token = res.data.token
+      
+      console.log('[RegistrationPage] Completing profile...');
+      
       // Prepare profile fields
       const profileFields = {
         phone: formData.phone,
@@ -711,16 +747,30 @@ export default function SignupPage() {
         // Add any other fields as needed
         profileCompleted: true
       }
+      
       await axios.put(
         `${API_BASE_URL}/api/users/${user._id}/complete-profile`,
         profileFields,
         { headers: { Authorization: `Bearer ${token}` } }
       )
+      
+      console.log('[RegistrationPage] Profile completed successfully');
+      
       // 4. Update AuthContext and redirect
       await login({ ...user, profileCompleted: true }, token)
+      console.log('[RegistrationPage] User logged in, redirecting to dashboard');
       navigate("/dashboard")
     } catch (err) {
-      throw new Error(err.response?.data?.message || "Verification failed. Please try again.")
+      console.error('[RegistrationPage] Verification error:', err);
+      console.error('[RegistrationPage] Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText
+      });
+      
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || "Verification failed. Please try again.";
+      throw new Error(errorMessage);
     }
   }
 
