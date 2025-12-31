@@ -163,17 +163,24 @@ const registerUser = async (req, res) => {
     // ✅ PREFERRED: Use Resend API if configured (works perfectly on Render, sends to ANY email)
     // IMPORTANT: Resend can send TO any email address without domain verification
     // Domain verification only affects the FROM address
+    console.log('[registerUser] Checking email service configuration...', {
+      hasResendKey: !!process.env.RESEND_API_KEY,
+      hasMailUser: !!process.env.MAIL_USER,
+      hasMailPass: !!process.env.MAIL_PASS
+    });
+    
     if (process.env.RESEND_API_KEY) {
       try {
         const { Resend } = require('resend');
         const resend = new Resend(process.env.RESEND_API_KEY);
         
-        console.log('[registerUser] Using Resend API for email sending (recommended for Render)');
+        console.log('[registerUser] ✅ Using Resend API for email sending (recommended for Render)');
         console.log('[registerUser] Sending to:', email, '(can be ANY email address)');
         
         // FROM address: Use verified domain email OR default Resend email
         // You can verify your domain later, but for now use onboarding@resend.dev
         const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        console.log('[registerUser] Resend FROM email:', fromEmail);
         
         const result = await resend.emails.send({
           from: `HackZen <${fromEmail}>`,
@@ -183,39 +190,70 @@ const registerUser = async (req, res) => {
           text: emailText
         });
         
-        console.log('[registerUser] Resend email sent successfully:', {
-          id: result.data?.id,
-          to: email
+        console.log('[registerUser] ✅ Resend API response:', JSON.stringify(result, null, 2));
+        
+        // Check if email was actually sent successfully
+        if (result.error) {
+          console.error('[registerUser] ❌ Resend API returned error:', result.error);
+          throw new Error(result.error.message || 'Resend API error');
+        }
+        
+        if (!result.data || !result.data.id) {
+          console.error('[registerUser] ❌ Resend API response missing email ID:', result);
+          throw new Error('Resend API did not return email ID');
+        }
+        
+        console.log('[registerUser] ✅ Resend email sent successfully:', {
+          id: result.data.id,
+          to: email,
+          from: fromEmail
         });
         
         res.status(200).json({ 
           message: 'Verification code sent to your email.',
-          success: true
+          success: true,
+          emailService: 'resend'
         });
         return; // Success, exit early
       } catch (resendError) {
-        console.error('[registerUser] Resend API error:', resendError);
+        console.error('[registerUser] ❌ Resend API error:', resendError);
         console.error('[registerUser] Resend error details:', {
           message: resendError.message,
           name: resendError.name,
+          code: resendError.code,
+          statusCode: resendError.statusCode,
+          response: resendError.response,
           stack: resendError.stack
         });
-        // Fall through to SMTP fallback
-        console.log('[registerUser] Resend failed, falling back to SMTP...');
+        // Don't fall through to SMTP - return error instead
+        await PendingUser.deleteOne({ email });
+        return res.status(500).json({ 
+          message: 'Failed to send verification email via Resend. Please try again or contact support.',
+          error: process.env.NODE_ENV === 'development' ? resendError.message : undefined,
+          emailService: 'resend'
+        });
       }
     }
     
     // ✅ FALLBACK: Use SMTP (Gmail) if Resend not configured
+    // NOTE: SMTP often fails on Render due to network restrictions
     if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      console.error('[registerUser] No email service configured - neither RESEND_API_KEY nor MAIL_USER/MAIL_PASS set');
+      console.error('[registerUser] ❌ No email service configured');
+      console.error('[registerUser] Environment variables check:', {
+        hasResendKey: !!process.env.RESEND_API_KEY,
+        hasMailUser: !!process.env.MAIL_USER,
+        hasMailPass: !!process.env.MAIL_PASS
+      });
       await PendingUser.deleteOne({ email });
       return res.status(500).json({ 
-        message: 'Email service not configured. Please contact support.',
-        error: 'RESEND_API_KEY or MAIL_USER/MAIL_PASS environment variables are not set'
+        message: 'Email service not configured. Please set RESEND_API_KEY in environment variables.',
+        error: 'RESEND_API_KEY or MAIL_USER/MAIL_PASS environment variables are not set',
+        hint: 'For Render, use RESEND_API_KEY (recommended)'
       });
     }
     
-    console.log('[registerUser] Using SMTP (Gmail) for email sending');
+    console.log('[registerUser] ⚠️ Using SMTP (Gmail) for email sending (may fail on Render)');
+    console.log('[registerUser] ⚠️ WARNING: SMTP often fails on Render. Consider using Resend API instead.');
     console.log('[registerUser] Email config check:', {
       hasMailUser: !!process.env.MAIL_USER,
       hasMailPass: !!process.env.MAIL_PASS,
@@ -275,25 +313,7 @@ const registerUser = async (req, res) => {
         console.log('[registerUser] Skipping transporter verification in production (Render compatibility)');
       }
       
-      console.log('[registerUser] Preparing email template...');
-      const emailTemplate = `
-        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #f4f6fb; border-radius: 12px;">
-          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 10px 10px 0 0; text-align: center;">
-            <h2 style="margin: 0; font-size: 24px;">Verify Your Email</h2>
-          </div>
-          <div style="background: #fff; padding: 32px 24px; border-radius: 0 0 10px 10px; text-align: center;">
-            <p style="color: #333; font-size: 16px;">Hi <b>${name || email}</b>,</p>
-            <p style="color: #555;">Thank you for registering! Please use the code below to verify your email address. This code is valid for <b>10 minutes</b>.</p>
-            <div style="margin: 32px 0;">
-              <span style="display: inline-block; font-size: 32px; letter-spacing: 8px; background: #f4f6fb; color: #764ba2; padding: 16px 32px; border-radius: 8px; font-weight: bold; border: 2px dashed #764ba2;">${verificationCode}</span>
-            </div>
-            <p style="color: #888; font-size: 14px;">If you did not request this, you can ignore this email.</p>
-          </div>
-          <div style="text-align: center; margin-top: 16px; color: #aaa; font-size: 12px;">&copy; 2025 HackZen Platform</div>
-        </div>
-      `;
-      
-      console.log('[registerUser] Sending verification email to:', email);
+      console.log('[registerUser] Sending verification email via SMTP to:', email);
       
       // Retry logic for email sending (useful for Render network issues)
       let mailResult;
@@ -350,7 +370,8 @@ const registerUser = async (req, res) => {
       
       res.status(200).json({ 
         message: 'Verification code sent to your email.',
-        success: true
+        success: true,
+        emailService: 'smtp'
       });
     } catch (emailError) {
       console.error('[registerUser] Email sending error:', emailError);
