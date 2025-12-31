@@ -31,7 +31,7 @@ export default function HeaderSection({
   const handleSave = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("${API_BASE_URL}/api/users/save-hackathon", {
+      const res = await fetch(`${API_BASE_URL}/api/users/save-hackathon`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

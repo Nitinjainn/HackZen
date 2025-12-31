@@ -48,11 +48,14 @@ export default function ProjectSubmissionModal({ open, onOpenChange, hackathon, 
   const fetchProjects = async (autoSelectLatest = false) => {
     setLoading(true);
     try {
-      const res = await fetch("${API_BASE_URL}/api/projects/mine", {
+      const res = await fetch(`${API_BASE_URL}/api/projects/mine`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
-      setProjects(data || []);
+      setProjects(Array.isArray(data) ? data : []);
       const params = new URLSearchParams(location.search);
       const newProjectId = params.get("newProjectId");
       if (newProjectId && data.some(p => p._id === newProjectId)) {
@@ -269,7 +272,7 @@ export default function ProjectSubmissionModal({ open, onOpenChange, hackathon, 
           }
         }
         // Now submit the project
-        const res = await fetch("${API_BASE_URL}/api/submission-form/submit", {
+        const res = await fetch(`${API_BASE_URL}/api/submission-form/submit`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

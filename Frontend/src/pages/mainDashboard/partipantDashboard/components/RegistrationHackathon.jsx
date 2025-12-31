@@ -95,7 +95,7 @@ export function HackathonRegistration({ hackathon, onBack, onSuccess, editMode =
         try {
           const token = localStorage.getItem("token");
           // Fetch complete user profile data
-          const profileResponse = await fetch("${API_BASE_URL}/api/users/me", {
+          const profileResponse = await fetch(`${API_BASE_URL}/api/users/me`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -239,7 +239,7 @@ export function HackathonRegistration({ hackathon, onBack, onSuccess, editMode =
         ? `${API_BASE_URL}/api/registration/${hackathon._id}/update`
         : inviteMode
           ? null // handled by parent
-          : "${API_BASE_URL}/api/registration";
+          : `${API_BASE_URL}/api/registration`;
       const method = editMode ? "PUT" : "POST";
 
       if (inviteMode) {

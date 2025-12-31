@@ -184,15 +184,18 @@ export function HackathonDetails({ hackathon: propHackathon, onBack, backButtonL
         if (!token) return;
 
         const res = await fetch(
-          "${API_BASE_URL}/api/users/me/saved-hackathons",
+          `${API_BASE_URL}/api/users/me/saved-hackathons`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
 
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
         const savedHackathons = await res.json();
         setIsSaved(
-          savedHackathons.some(
+          Array.isArray(savedHackathons) && savedHackathons.some(
             (h) =>
               h._id === hackathon._id || h._id === hackathon._id?.toString()
           )
@@ -215,10 +218,10 @@ export function HackathonDetails({ hackathon: propHackathon, onBack, backButtonL
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await axios.get("${API_BASE_URL}/api/registration/my", {
+      const res = await axios.get(`${API_BASE_URL}/api/registration/my`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const registered = res.data.some(
+      const registered = Array.isArray(res.data) && res.data.some(
         (r) =>
           r.hackathonId === hackathon._id ||
           r.hackathonId?._id === hackathon._id
@@ -241,12 +244,12 @@ export function HackathonDetails({ hackathon: propHackathon, onBack, backButtonL
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      const res = await axios.get("${API_BASE_URL}/api/registration/my", {
+      const res = await axios.get(`${API_BASE_URL}/api/registration/my`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const reg = res.data.find(
+      const reg = Array.isArray(res.data) ? res.data.find(
         (r) => r.hackathonId === hackathon._id || r.hackathonId?._id === hackathon._id
-      );
+      ) : null;
       if (reg) setRegistrationData(reg.formData);
     } catch  {
       setRegistrationData(null);

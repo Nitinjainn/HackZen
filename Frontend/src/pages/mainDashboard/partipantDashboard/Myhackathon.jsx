@@ -76,13 +76,16 @@ export default function MyHackathons() {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const res = await fetch("${API_BASE_URL}/api/projects/mine", {
+        const res = await fetch(`${API_BASE_URL}/api/projects/mine`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         });
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
         const data = await res.json();
-        setProjects(data || []);
+        setProjects(Array.isArray(data) ? data : []);
         // If URL has a projectId, select that project
         if (urlProjectId && Array.isArray(data)) {
           const found = data.find((p) => p._id === urlProjectId);
@@ -103,13 +106,16 @@ export default function MyHackathons() {
   const fetchRegisteredHackathons = async () => {
     try {
       setLoadingHackathons(true);
-      const res = await fetch("${API_BASE_URL}/api/registration/my", {
+      const res = await fetch(`${API_BASE_URL}/api/registration/my`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
-      const formatted = data
+      const formatted = Array.isArray(data) ? data
         .filter((reg) => reg.hackathonId) // Only keep registrations with a valid hackathon
         .map((reg) => {
           const h = reg.hackathonId;
@@ -130,7 +136,7 @@ export default function MyHackathons() {
             registered: true,
             submitted: false,
           };
-        });
+        }) : [];
       setHackathons(formatted);
     } catch (err) {
       console.error("Failed to fetch registered hackathons", err);
@@ -144,15 +150,18 @@ export default function MyHackathons() {
     try {
       setSavedLoading(true);
       const res = await fetch(
-        "${API_BASE_URL}/api/users/me/saved-hackathons",
+        `${API_BASE_URL}/api/users/me/saved-hackathons`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
       const data = await res.json();
-      const formatted = data.map((h) => ({
+      const formatted = Array.isArray(data) ? data.map((h) => ({
         id: h._id,
         name: h.title,
         image: h.images?.banner?.url,
@@ -167,7 +176,7 @@ export default function MyHackathons() {
         category: h.category,
         difficulty: h.difficultyLevel,
         saved: true,
-      }));
+      })) : [];
       setSavedHackathons(formatted);
     } catch (err) {
       console.error("Failed to fetch saved hackathons", err);

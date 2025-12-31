@@ -56,13 +56,13 @@ export function ExploreHackathons() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        const res = await axios.get("${API_BASE_URL}/api/registration/my", {
+        const res = await axios.get(`${API_BASE_URL}/api/registration/my`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        const ids = res.data
+        const ids = Array.isArray(res.data) ? res.data
           .filter((reg) => reg.hackathonId && reg.hackathonId._id)
-          .map((reg) => reg.hackathonId._id);
+          .map((reg) => reg.hackathonId._id) : [];
         
         setRegisteredHackathonIds(ids);
       } catch (err) {
@@ -77,12 +77,12 @@ export function ExploreHackathons() {
     const fetchAndProcessHackathons = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("${API_BASE_URL}/api/hackathons");
+        const res = await axios.get(`${API_BASE_URL}/api/hackathons`);
         const now = new Date();
 
-        const approved = res.data.filter(
+        const approved = Array.isArray(res.data) ? res.data.filter(
           (h) => h.approvalStatus === "approved" && new Date(h.registrationDeadline) >= now
-        );
+        ) : [];
 
         const banners = approved.filter(
           h => h.isFeatured && (h.featuredType === 'banner' || h.featuredType === 'both')
