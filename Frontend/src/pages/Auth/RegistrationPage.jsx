@@ -623,10 +623,10 @@ export default function SignupPage() {
       
       // Only proceed if we got a success response
       if (res.status === 200 && res.data.message) {
-        setEmailForCode(formData.email)
-        setSuccessMsg(res.data.message || "Verification code sent to your email.")
-        // Show SweetAlert2 popup for code entry
-        await showVerificationPopup()
+      setEmailForCode(formData.email)
+      setSuccessMsg(res.data.message || "Verification code sent to your email.")
+      // Show SweetAlert2 popup for code entry
+      await showVerificationPopup()
       } else {
         throw new Error(res.data.message || "Registration failed. Please try again.")
       }

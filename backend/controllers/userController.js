@@ -140,51 +140,139 @@ const registerUser = async (req, res) => {
     );
     console.log('[registerUser] Pending user stored successfully');
     
-    // Send email
+    // Prepare email template (used by both Resend and SMTP)
+    const emailTemplate = `
+      <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; background: #f4f6fb; border-radius: 12px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; border-radius: 10px 10px 0 0; text-align: center;">
+          <h2 style="margin: 0; font-size: 24px;">Verify Your Email</h2>
+        </div>
+        <div style="background: #fff; padding: 32px 24px; border-radius: 0 0 10px 10px; text-align: center;">
+          <p style="color: #333; font-size: 16px;">Hi <b>${name || email}</b>,</p>
+          <p style="color: #555;">Thank you for registering! Please use the code below to verify your email address. This code is valid for <b>10 minutes</b>.</p>
+          <div style="margin: 32px 0;">
+            <span style="display: inline-block; font-size: 32px; letter-spacing: 8px; background: #f4f6fb; color: #764ba2; padding: 16px 32px; border-radius: 8px; font-weight: bold; border: 2px dashed #764ba2;">${verificationCode}</span>
+          </div>
+          <p style="color: #888; font-size: 14px;">If you did not request this, you can ignore this email.</p>
+        </div>
+        <div style="text-align: center; margin-top: 16px; color: #aaa; font-size: 12px;">&copy; 2025 HackZen Platform</div>
+      </div>
+    `;
+    
+    const emailText = `Hi ${name || email},\n\nThank you for registering! Please use the code below to verify your email address. This code is valid for 10 minutes.\n\nVerification Code: ${verificationCode}\n\nIf you did not request this, you can ignore this email.\n\n© 2025 HackZen Platform`;
+    
+    // ✅ PREFERRED: Use Resend API if configured (works perfectly on Render, sends to ANY email)
+    // IMPORTANT: Resend can send TO any email address without domain verification
+    // Domain verification only affects the FROM address
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const { Resend } = require('resend');
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        
+        console.log('[registerUser] Using Resend API for email sending (recommended for Render)');
+        console.log('[registerUser] Sending to:', email, '(can be ANY email address)');
+        
+        // FROM address: Use verified domain email OR default Resend email
+        // You can verify your domain later, but for now use onboarding@resend.dev
+        const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+        
+        const result = await resend.emails.send({
+          from: `HackZen <${fromEmail}>`,
+          to: email, // ✅ Can be ANY email address - jaingaurav906@gmail.com, etc.
+          subject: 'Your Verification Code for HackZen Registration',
+          html: emailTemplate,
+          text: emailText
+        });
+        
+        console.log('[registerUser] Resend email sent successfully:', {
+          id: result.data?.id,
+          to: email
+        });
+        
+        res.status(200).json({ 
+          message: 'Verification code sent to your email.',
+          success: true
+        });
+        return; // Success, exit early
+      } catch (resendError) {
+        console.error('[registerUser] Resend API error:', resendError);
+        console.error('[registerUser] Resend error details:', {
+          message: resendError.message,
+          name: resendError.name,
+          stack: resendError.stack
+        });
+        // Fall through to SMTP fallback
+        console.log('[registerUser] Resend failed, falling back to SMTP...');
+      }
+    }
+    
+    // ✅ FALLBACK: Use SMTP (Gmail) if Resend not configured
     if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
-      console.error('[registerUser] Email service not configured - MAIL_USER or MAIL_PASS missing');
-      console.error('[registerUser] Environment check:', {
-        hasMailUser: !!process.env.MAIL_USER,
-        hasMailPass: !!process.env.MAIL_PASS,
-        nodeEnv: process.env.NODE_ENV,
-        render: !!process.env.RENDER
-      });
-      // Clean up pending user
+      console.error('[registerUser] No email service configured - neither RESEND_API_KEY nor MAIL_USER/MAIL_PASS set');
       await PendingUser.deleteOne({ email });
       return res.status(500).json({ 
         message: 'Email service not configured. Please contact support.',
-        error: 'MAIL_USER or MAIL_PASS environment variables are not set'
+        error: 'RESEND_API_KEY or MAIL_USER/MAIL_PASS environment variables are not set'
       });
     }
     
-    console.log('[registerUser] Creating email transporter...');
+    console.log('[registerUser] Using SMTP (Gmail) for email sending');
     console.log('[registerUser] Email config check:', {
       hasMailUser: !!process.env.MAIL_USER,
       hasMailPass: !!process.env.MAIL_PASS,
-      mailUser: process.env.MAIL_USER ? `${process.env.MAIL_USER.substring(0, 3)}...` : 'NOT SET'
+      mailUser: process.env.MAIL_USER ? `${process.env.MAIL_USER.substring(0, 3)}...` : 'NOT SET',
+      isProduction: process.env.NODE_ENV === 'production' || !!process.env.RENDER
     });
     
+    // Use explicit SMTP config for better reliability on Render/production
+    // Try port 465 (SSL) first, fallback to 587 (STARTTLS)
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = parseInt(process.env.SMTP_PORT || process.env.MAIL_PORT || '465');
+    const useSecure = smtpPort === 465;
+    
     try {
+      
+      console.log('[registerUser] SMTP Configuration:', {
+        host: smtpHost,
+        port: smtpPort,
+        secure: useSecure,
+        user: process.env.MAIL_USER ? `${process.env.MAIL_USER.substring(0, 3)}...` : 'NOT SET'
+      });
+      
       const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: smtpHost,
+        port: smtpPort,
+        secure: useSecure, // true for 465, false for other ports
         auth: {
           user: process.env.MAIL_USER,
           pass: process.env.MAIL_PASS
         },
-        // Add timeout and connection options for production
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000
+        // Enhanced connection options for production/render
+        connectionTimeout: 30000, // 30 seconds
+        greetingTimeout: 30000,
+        socketTimeout: 30000,
+        // Additional options for reliability
+        tls: {
+          rejectUnauthorized: false, // Accept self-signed certs if needed (needed for some Render setups)
+          minVersion: 'TLSv1.2'
+        },
+        // Pool connections for better performance
+        pool: true,
+        maxConnections: 1,
+        maxMessages: 3
       });
       
-      // Verify transporter before sending (but don't fail if verify fails in production)
-      console.log('[registerUser] Verifying email transporter...');
-      try {
-        await transporter.verify();
-        console.log('[registerUser] Email transporter verified successfully');
-      } catch (verifyError) {
-        console.warn('[registerUser] Transporter verification failed, but continuing:', verifyError.message);
-        // Continue anyway - sometimes verify fails but sendMail works
+      // Skip verification in production - it often fails on Render but sendMail works
+      const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER;
+      if (!isProduction) {
+        console.log('[registerUser] Verifying email transporter...');
+        try {
+          await transporter.verify();
+          console.log('[registerUser] Email transporter verified successfully');
+        } catch (verifyError) {
+          console.warn('[registerUser] Transporter verification failed, but continuing:', verifyError.message);
+        }
+      } else {
+        console.log('[registerUser] Skipping transporter verification in production (Render compatibility)');
       }
       
       console.log('[registerUser] Preparing email template...');
@@ -206,14 +294,42 @@ const registerUser = async (req, res) => {
       `;
       
       console.log('[registerUser] Sending verification email to:', email);
-      const mailResult = await transporter.sendMail({
-        from: `"HackZen" <${process.env.MAIL_USER}>`,
-        to: email,
-        subject: 'Your Verification Code for HackZen Registration',
-        html: emailTemplate,
-        // Add text version for better compatibility
-        text: `Hi ${name || email},\n\nThank you for registering! Please use the code below to verify your email address. This code is valid for 10 minutes.\n\nVerification Code: ${verificationCode}\n\nIf you did not request this, you can ignore this email.\n\n© 2025 HackZen Platform`
-      });
+      
+      // Retry logic for email sending (useful for Render network issues)
+      let mailResult;
+      let lastError;
+      const maxRetries = 2;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`[registerUser] Email send attempt ${attempt}/${maxRetries}`);
+          mailResult = await transporter.sendMail({
+            from: `"HackZen" <${process.env.MAIL_USER}>`,
+            to: email,
+            subject: 'Your Verification Code for HackZen Registration',
+            html: emailTemplate,
+            text: emailText
+          });
+          console.log(`[registerUser] Email sent successfully on attempt ${attempt}`);
+          break; // Success, exit retry loop
+        } catch (retryError) {
+          lastError = retryError;
+          console.error(`[registerUser] Email send attempt ${attempt} failed:`, retryError.message);
+          
+          // If it's a connection error and we have retries left, wait and retry
+          if ((retryError.code === 'ECONNECTION' || retryError.code === 'ETIMEDOUT' || retryError.code === 'ESOCKET') && attempt < maxRetries) {
+            console.log(`[registerUser] Waiting 2 seconds before retry...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
+          }
+          // Otherwise, throw the error
+          throw retryError;
+        }
+      }
+      
+      if (!mailResult) {
+        throw lastError || new Error('Failed to send email after retries');
+      }
       
       console.log('[registerUser] Verification email sent successfully to', email, 'Message ID:', mailResult.messageId);
       console.log('[registerUser] Email response:', {
@@ -258,17 +374,25 @@ const registerUser = async (req, res) => {
       let errorMessage = 'Failed to send verification email. Please try again or contact support if the problem persists.';
       let statusCode = 500;
       
-      if (emailError.code === 'EAUTH') {
+      console.error('[registerUser] Email error code:', emailError.code);
+      console.error('[registerUser] Email error message:', emailError.message);
+      
+      if (emailError.code === 'EAUTH' || emailError.code === 'EENVELOPE') {
         errorMessage = 'Email service authentication failed. Please contact support.';
         statusCode = 503; // Service Unavailable
-      } else if (emailError.code === 'ECONNECTION' || emailError.code === 'ETIMEDOUT') {
-        errorMessage = 'Could not connect to email service. Please try again in a few moments.';
+      } else if (emailError.code === 'ECONNECTION' || emailError.code === 'ETIMEDOUT' || emailError.code === 'ESOCKET') {
+        // Connection issues - common on Render
+        console.log('[registerUser] Connection failed - this might be a Render network issue');
+        errorMessage = 'Email service temporarily unavailable. Please try again in a few moments. If the problem persists, contact support.';
         statusCode = 503;
-      } else if (emailError.responseCode === 550 || emailError.code === 'EENVELOPE') {
+      } else if (emailError.responseCode === 550) {
         errorMessage = 'Invalid email address. Please check your email and try again.';
         statusCode = 400; // Bad Request
-      } else if (emailError.message && emailError.message.includes('Invalid login')) {
+      } else if (emailError.message && (emailError.message.includes('Invalid login') || emailError.message.includes('authentication'))) {
         errorMessage = 'Email service configuration error. Please contact support.';
+        statusCode = 503;
+      } else if (emailError.code === 'ECERTHASEXPIRED' || emailError.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
+        errorMessage = 'Email service certificate error. Please contact support.';
         statusCode = 503;
       }
       
@@ -277,7 +401,13 @@ const registerUser = async (req, res) => {
         error: process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production' 
           ? emailError.message 
           : undefined,
-        code: emailError.code
+        code: emailError.code,
+        // Include helpful debug info in development
+        debug: process.env.NODE_ENV === 'development' ? {
+          host: smtpHost,
+          port: smtpPort,
+          secure: useSecure
+        } : undefined
       });
     }
   } catch (err) {
